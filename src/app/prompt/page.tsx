@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Sparkles, Wand2, RefreshCcw, ChevronDown, Loader2 } from "lucide-react";
+import { Sparkles, Wand2, RefreshCcw, ChevronDown } from "lucide-react";
 import { Suspense } from "react";
 
 const CATEGORY_OPTIONS = {
@@ -110,7 +110,6 @@ function PromptContent() {
   const theme = searchParams.get("theme") || "space";
   
   const [prompt, setPrompt] = useState(DEFAULT_TEMPLATE);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [selections, setSelections] = useState({
     medium: "",
@@ -165,10 +164,9 @@ function PromptContent() {
     });
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     if (!prompt) return;
-    setIsSubmitting(true);
-    
+
     sessionStorage.setItem("userPrompt", prompt);
     sessionStorage.setItem("userTheme", theme);
     sessionStorage.removeItem("bgImage"); // Clear old cache
@@ -262,24 +260,15 @@ function PromptContent() {
               </button>
               <button
                 onClick={handleGenerate}
-                disabled={!prompt || isSubmitting}
+                disabled={!prompt}
                 className={`flex-1 flex items-center justify-center py-6 text-2xl font-bold rounded-2xl transition-all duration-300 ${
-                  prompt && !isSubmitting
+                  prompt
                     ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white hover:scale-[1.02] shadow-[0_0_40px_rgba(236,72,153,0.5)]"
                     : "bg-white/10 text-white/40 cursor-not-allowed"
                 }`}
               >
-                {isSubmitting ? (
-                  <span className="animate-pulse flex items-center">
-                    <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-                    마법 그리는 중...
-                  </span>
-                ) : (
-                  <>
-                    <Sparkles className="w-8 h-8 mr-3" />
-                    이대로 마법 그리기 시작!
-                  </>
-                )}
+                <Sparkles className="w-8 h-8 mr-3" />
+                이대로 마법 그리기 시작!
               </button>
             </div>
           </div>

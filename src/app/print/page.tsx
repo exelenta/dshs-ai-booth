@@ -24,6 +24,8 @@ export default function PrintPage() {
   
   const [isPrinting, setIsPrinting] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const [uploadWarning, setUploadWarning] = useState<string | null>(null);
+  const [printError, setPrintError] = useState<string | null>(null);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -101,12 +103,14 @@ export default function PrintPage() {
   const handlePrint = async () => {
     if (!baseImage) return;
     setIsPrinting(true);
+    setPrintError(null);
+    setUploadWarning(null);
 
     try {
       const canvas = canvasRef.current;
-      if (!canvas) return;
+      if (!canvas) throw new Error("Canvas not available");
       const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+      if (!ctx) throw new Error("Canvas context not available");
 
       const img = new Image();
       img.src = baseImage;
@@ -190,9 +194,12 @@ export default function PrintPage() {
 
       const fileName = `booth_${Date.now()}_guest.jpg`;
       const storageRef = ref(storage, `prints/${fileName}`);
-      uploadString(storageRef, generatedFinalImage, 'data_url').catch(e => {
+      try {
+        await uploadString(storageRef, generatedFinalImage, "data_url");
+      } catch (e) {
         console.error("Firebase upload failed", e);
-      });
+        setUploadWarning("클라우드 백업에 실패했지만 인쇄는 계속 진행됩니다.");
+      }
 
       // Show the generated image for a split second so the browser captures it for printing
       setTimeout(() => {
@@ -206,6 +213,7 @@ export default function PrintPage() {
 
     } catch (err) {
       console.error(err);
+      setPrintError("인쇄 준비 중 오류가 발생했습니다. 다시 시도해 주세요.");
       setIsPrinting(false);
     }
   };
@@ -248,7 +256,7 @@ export default function PrintPage() {
     <main className="min-h-screen bg-slate-900 p-6 flex items-center justify-center print-page relative">
       <div className="absolute top-6 left-6 z-20 print:hidden">
         <span className="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/80 font-bold tracking-wider backdrop-blur-md">
-          4단계: 결과 확인 및 출력
+          5단계: 마지막 꾸미기 및 인쇄
         </span>
       </div>
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 z-10">
@@ -256,6 +264,13 @@ export default function PrintPage() {
         {/* Settings Panel */}
         <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 flex flex-col no-print h-fit">
           <h2 className="text-2xl font-bold text-white mb-6">마지막 꾸미기</h2>
+
+          {printError && (
+            <p className="mb-4 text-red-400 text-sm font-medium">{printError}</p>
+          )}
+          {uploadWarning && (
+            <p className="mb-4 text-yellow-300 text-sm">{uploadWarning}</p>
+          )}
           
           <div className="mb-6">
             <label className="block text-slate-300 mb-2 font-medium">나만의 멘트 (선택)</label>
