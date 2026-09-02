@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Sparkles, Wand2, RefreshCcw, ChevronDown } from "lucide-react";
 import { Suspense } from "react";
+import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 
 const CATEGORY_OPTIONS = {
   medium: {
     label: "매체 및 스타일 (Medium & Style)",
-    placeholder: "[매체/스타일]",
+    placeholder: "매체/스타일",
     options: [
       "디즈니 픽사 3D 애니메이션 (Disney Pixar 3D)",
       "지브리 스튜디오 수채화 (Studio Ghibli Watercolor)",
@@ -25,7 +26,7 @@ const CATEGORY_OPTIONS = {
   },
   subject: {
     label: "피사체 및 세부묘사 (Subject)",
-    placeholder: "[피사체 및 세부묘사]",
+    placeholder: "피사체 및 세부묘사",
     options: [
       "환하게 웃고 있는 다정한 우리 가족",
       "미래지향적인 우주복을 입은 귀여운 아이",
@@ -42,7 +43,7 @@ const CATEGORY_OPTIONS = {
   },
   background: {
     label: "배경 및 환경 (Background)",
-    placeholder: "[배경/환경]",
+    placeholder: "배경/환경",
     options: [
       "빛나는 별과 은하수가 끝없이 펼쳐진 우주",
       "형형색색의 산호초와 열대어가 가득한 바닷속",
@@ -58,7 +59,7 @@ const CATEGORY_OPTIONS = {
   },
   composition: {
     label: "구도 및 카메라 (Composition)",
-    placeholder: "[구도/카메라]",
+    placeholder: "구도/카메라",
     options: [
       "인물과 배경이 완벽히 조화로운 풀 샷 (Full Shot)",
       "웅장함이 느껴지는 로우 앵글 샷 (Low Angle)",
@@ -74,7 +75,7 @@ const CATEGORY_OPTIONS = {
   },
   lighting: {
     label: "조명 및 색감 (Lighting)",
-    placeholder: "[조명/색감]",
+    placeholder: "조명/색감",
     options: [
       "따뜻하고 낭만적인 황금빛 노을 조명 (Golden Hour)",
       "신비롭고 몽환적인 푸른빛과 보라색 네온광 (Neon Lighting)",
@@ -90,7 +91,7 @@ const CATEGORY_OPTIONS = {
   },
   quality: {
     label: "기술적 제어 및 품질 (Quality)",
-    placeholder: "[품질 키워드]",
+    placeholder: "품질 키워드",
     options: [
       "8k 해상도, 완벽한 걸작, 극강의 디테일 (8k resolution, masterpiece)",
       "선명한 포커스, 눈부신 색채, 하이엔드 렌더링 (sharp focus, vibrant)",
@@ -102,66 +103,84 @@ const CATEGORY_OPTIONS = {
   }
 };
 
-const DEFAULT_TEMPLATE = "[매체/스타일]로 표현된 [피사체 및 세부묘사]의 모습입니다. 배경은 [배경/환경]으로 꾸며져 있고, [구도/카메라]로 연출되었습니다. [조명/색감]이 전체적인 분위기를 더해주며 최고의 화질([품질 키워드])을 보여줍니다.";
+type Selections = {
+  medium: string;
+  subject: string;
+  background: string;
+  composition: string;
+  lighting: string;
+  quality: string;
+};
+
+const initialSelections: Selections = {
+  medium: "",
+  subject: "",
+  background: "",
+  composition: "",
+  lighting: "",
+  quality: ""
+};
+
+const buildPromptTemplate = (sel: Selections, hasCapturedPhoto: boolean = true) => {
+  const m = sel.medium || `[${CATEGORY_OPTIONS.medium.placeholder}]`;
+  const s = sel.subject || `[${CATEGORY_OPTIONS.subject.placeholder}]`;
+  const b = sel.background || `[${CATEGORY_OPTIONS.background.placeholder}]`;
+  const c = sel.composition || `[${CATEGORY_OPTIONS.composition.placeholder}]`;
+  const l = sel.lighting || `[${CATEGORY_OPTIONS.lighting.placeholder}]`;
+  const q = sel.quality || `[${CATEGORY_OPTIONS.quality.placeholder}]`;
+
+  if (hasCapturedPhoto) {
+    return `입력된 인물의 얼굴 형태와 특징을 바탕으로 ${m} 화풍으로 완벽하게 재창조된 ${s}의 모습입니다. 인물과 이질감 없이 완전히 융합된 ${b} 배경을 바탕으로, ${c} 구도로 연출되었습니다. ${l}의 빛과 색채가 인물과 배경 전체에 동일하게 적용되어 완벽한 일체감을 주며, 최고의 화질(${q})을 보여주는 작품입니다.`;
+  }
+
+  return `${m} 화풍으로 표현된 ${s}의 모습입니다. ${b} 배경을 바탕으로, ${c} 구도로 연출되었습니다. ${l}의 빛과 색채가 전체적인 분위기를 더해주며 최고의 화질(${q})을 보여주는 작품입니다.`;
+};
 
 function PromptContent() {
+  useIdleTimeout();
   const router = useRouter();
   const searchParams = useSearchParams();
   const theme = searchParams.get("theme") || "space";
   
-  const [prompt, setPrompt] = useState(DEFAULT_TEMPLATE);
-
-  const [selections, setSelections] = useState({
-    medium: "",
-    subject: "",
-    background: "",
-    composition: "",
-    lighting: "",
-    quality: ""
-  });
+  const [hasPhoto, setHasPhoto] = useState(true);
+  const [selections, setSelections] = useState<Selections>(initialSelections);
+  const [prompt, setPrompt] = useState(() => buildPromptTemplate(initialSelections, true));
+  const [isCustomized, setIsCustomized] = useState(false);
 
   useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
+    const photo = sessionStorage.getItem("capturedImage");
+    const photoExists = !!photo;
+    setHasPhoto(photoExists);
+    if (!isCustomized) {
+      setPrompt(buildPromptTemplate(selections, photoExists));
+    }
+  }, []);
 
-    const resetTimer = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        sessionStorage.removeItem("capturedImage");
-        router.push("/");
-      }, 120000); 
-    };
-
-    window.addEventListener("mousemove", resetTimer);
-    window.addEventListener("touchstart", resetTimer);
-    window.addEventListener("keydown", resetTimer);
-    resetTimer();
-
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener("mousemove", resetTimer);
-      window.removeEventListener("touchstart", resetTimer);
-      window.removeEventListener("keydown", resetTimer);
-    };
-  }, [router]);
-
-  const handleSelectChange = (category: keyof typeof CATEGORY_OPTIONS, value: string) => {
-    setSelections(prev => ({ ...prev, [category]: value }));
+  const handleSelectChange = (category: keyof Selections, value: string) => {
+    const updatedSelections = { ...selections, [category]: value };
+    setSelections(updatedSelections);
     
-    setPrompt(prevPrompt => {
-      const placeholder = CATEGORY_OPTIONS[category].placeholder;
-      let newPrompt = prevPrompt;
-      
-      if (selections[category] && newPrompt.includes(selections[category])) {
-        newPrompt = newPrompt.replace(selections[category], value);
-      } 
-      else if (newPrompt.includes(placeholder)) {
-        newPrompt = newPrompt.replace(placeholder, value);
-      }
-      else {
-        newPrompt += ` ${value}`;
-      }
-      return newPrompt;
-    });
+    if (!isCustomized) {
+      setPrompt(buildPromptTemplate(updatedSelections, hasPhoto));
+    } else {
+      setPrompt(prevPrompt => {
+        const prevVal = selections[category];
+        const placeholder = `[${CATEGORY_OPTIONS[category].placeholder}]`;
+        
+        if (prevVal && prevPrompt.includes(prevVal)) {
+          return prevPrompt.replace(prevVal, value);
+        }
+        if (prevPrompt.includes(placeholder)) {
+          return prevPrompt.replace(placeholder, value);
+        }
+        return `${prevPrompt.trim()} (${value})`;
+      });
+    }
+  };
+
+  const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setPrompt(e.target.value);
+    setIsCustomized(true);
   };
 
   const handleGenerate = () => {
@@ -175,8 +194,18 @@ function PromptContent() {
   };
 
   const handleReset = () => {
-    setPrompt(DEFAULT_TEMPLATE);
-    setSelections({ medium: "", subject: "", background: "", composition: "", lighting: "", quality: "" });
+    setSelections(initialSelections);
+    setPrompt(buildPromptTemplate(initialSelections, hasPhoto));
+    setIsCustomized(false);
+  };
+
+  const handlePrev = () => {
+    const hasCapturedImage = !!sessionStorage.getItem("capturedImage");
+    if (hasCapturedImage) {
+      router.push(`/camera?theme=${theme}`);
+    } else {
+      router.push(`/?theme=${theme}`);
+    }
   };
 
   return (
@@ -196,7 +225,7 @@ function PromptContent() {
           상상하는 모습을 자세히 알려주세요!
         </h1>
         <p className="text-slate-300 text-lg mb-8 shrink-0">
-          왼쪽 메뉴에서 6가지 요소를 선택하면, 오른쪽에 마법의 주문이 완성됩니다.
+          왼쪽 메뉴에서 6가지 요소를 선택하면, 오른쪽에 화풍 변환 마법 주문이 완성됩니다.
         </p>
 
         <div className="flex flex-col lg:flex-row gap-8 flex-1 min-h-0">
@@ -216,7 +245,7 @@ function PromptContent() {
                       onChange={(e) => handleSelectChange(key, e.target.value)}
                       className="w-full appearance-none bg-black/50 border border-white/20 text-white text-base rounded-xl px-4 py-3 outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-400 transition-all cursor-pointer hover:bg-black/70"
                     >
-                      <option value="" disabled hidden>{cat.placeholder} 선택하기</option>
+                      <option value="" disabled hidden>[{cat.placeholder}] 선택하기</option>
                       {cat.options.map((opt, idx) => (
                         <option key={idx} value={opt} className="bg-slate-800 text-white py-2">
                           {opt}
@@ -233,28 +262,28 @@ function PromptContent() {
           {/* Right Column: Prompt & Submit */}
           <div className="flex-1 flex flex-col">
             <div className="bg-black/40 rounded-3xl p-6 flex-1 flex flex-col border border-white/10 shadow-inner">
-              <h3 className="text-white/80 font-bold text-lg mb-4 flex justify-between items-center">
-                <span>완성된 마법 주문 (프롬프트)</span>
+              <div className="text-white/80 font-bold text-lg mb-4 flex justify-between items-center">
+                <span>완성된 마법 주문 (인물 화풍 일체화 프롬프트)</span>
                 <button 
                   onClick={handleReset}
-                  className="text-white/50 hover:text-white flex items-center text-sm transition-colors font-normal px-3 py-1 bg-white/5 rounded-lg hover:bg-white/10"
+                  className="text-white/50 hover:text-white flex items-center text-sm transition-colors font-normal px-3 py-1 bg-white/5 rounded-lg hover:bg-white/10 cursor-pointer"
                 >
                   <RefreshCcw className="w-4 h-4 mr-2" />
                   템플릿 초기화
                 </button>
-              </h3>
+              </div>
               <textarea
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="w-full flex-1 bg-transparent text-white text-xl md:text-2xl outline-none resize-none placeholder-white/30 leading-relaxed"
+                onChange={handlePromptChange}
+                className="w-full flex-1 bg-transparent text-white text-lg md:text-xl outline-none resize-none placeholder-white/30 leading-relaxed font-normal"
                 placeholder="마법 주문을 직접 수정할 수도 있어요..."
               />
             </div>
 
             <div className="mt-6 flex gap-4 shrink-0">
               <button
-                onClick={() => router.push(`/camera?theme=${theme}`)}
-                className="flex items-center justify-center px-6 py-6 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors"
+                onClick={handlePrev}
+                className="flex items-center justify-center px-6 py-6 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors cursor-pointer"
               >
                 이전 단계
               </button>
@@ -263,7 +292,7 @@ function PromptContent() {
                 disabled={!prompt}
                 className={`flex-1 flex items-center justify-center py-6 text-2xl font-bold rounded-2xl transition-all duration-300 ${
                   prompt
-                    ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white hover:scale-[1.02] shadow-[0_0_40px_rgba(236,72,153,0.5)]"
+                    ? "bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 text-white hover:scale-[1.02] shadow-[0_0_40px_rgba(236,72,153,0.5)] cursor-pointer"
                     : "bg-white/10 text-white/40 cursor-not-allowed"
                 }`}
               >

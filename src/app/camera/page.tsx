@@ -6,8 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Camera, RefreshCcw, ArrowRight, Loader2 } from "lucide-react";
 
 import { Suspense } from "react";
+import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 
 function CameraContent() {
+  useIdleTimeout();
   const router = useRouter();
   const searchParams = useSearchParams();
   const theme = searchParams.get("theme");
@@ -196,7 +198,7 @@ function CameraContent() {
           {!capturedImage ? (
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full">
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push(theme ? `/?theme=${theme}` : '/')}
                 className="flex items-center justify-center px-8 py-4 bg-white/5 border border-white/20 text-white text-xl font-bold rounded-full hover:bg-white/10 transition-colors"
               >
                 이전 단계

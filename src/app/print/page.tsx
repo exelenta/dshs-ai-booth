@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Printer, Home, CheckCircle2, Move, ArrowLeft } from "lucide-react";
+import { Printer, Home, CheckCircle2, Move, ArrowLeft, Smartphone, Download } from "lucide-react";
 import { storage } from "@/lib/firebase";
-import { ref, uploadString } from "firebase/storage";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
+import { composeFinalImage } from "@/lib/compose-image";
+import { isValidKoreanPhoneInput } from "@/lib/phone";
+import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 
 const FONTS = [
   { id: "sans", name: "단정한 고딕체", value: "sans-serif" },
@@ -12,25 +15,30 @@ const FONTS = [
   { id: "cursive", name: "귀여운 손글씨", value: "cursive" },
 ];
 
-export default function PrintPage() {
+function PrintContent() {
+  useIdleTimeout();
   const router = useRouter();
   
   const [baseImage, setBaseImage] = useState<string | null>(null);
   const [finalImage, setFinalImage] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedFont, setSelectedFont] = useState(FONTS[0].value);
-  const [fontSize, setFontSize] = useState(5); // Percentage of height
+  const [fontSize, setFontSize] = useState(5);
   const [textColor, setTextColor] = useState("white");
   
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [isDone, setIsDone] = useState(false);
   const [uploadWarning, setUploadWarning] = useState<string | null>(null);
   const [printError, setPrintError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sendSuccess, setSendSuccess] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Drag and Drop State
   const [textPos, setTextPos] = useState({ x: 50, y: 85 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
@@ -44,7 +52,6 @@ export default function PrintPage() {
     setBaseImage(imgStr);
   }, [router]);
 
-  // Drag logic
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     if (!message) return;
     e.preventDefault();
@@ -100,6 +107,49 @@ export default function PrintPage() {
     };
   }, [isDragging]);
 
+  const generateComposedImage = async () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !baseImage) throw new Error("Canvas not available");
+
+    return composeFinalImage(canvas, {
+      baseImage,
+      message,
+      selectedFont,
+      fontSize,
+      textColor,
+      textPos,
+    });
+  };
+
+  const uploadComposedImage = async (imageData: string): Promise<string> => {
+    if (!process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET) {
+      throw new Error(
+        "Firebase Storage 버킷(.env.local의 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET)이 설정되지 않았습니다."
+      );
+    }
+    const fileName = `booth_${Date.now()}_guest.jpg`;
+    const storageRef = ref(storage, `prints/${fileName}`);
+
+    const uploadPromise = (async () => {
+      await uploadString(storageRef, imageData, "data_url");
+      return getDownloadURL(storageRef);
+    })();
+
+    const timeoutPromise = new Promise<string>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              "Firebase Storage 이미지 업로드 시간 초과 (15초). Storage 규칙(Rules)이나 네트워크를 확인해 주세요."
+            )
+          ),
+        15000
+      )
+    );
+
+    return Promise.race([uploadPromise, timeoutPromise]);
+  };
+
   const handlePrint = async () => {
     if (!baseImage) return;
     setIsPrinting(true);
@@ -107,114 +157,114 @@ export default function PrintPage() {
     setUploadWarning(null);
 
     try {
-      const canvas = canvasRef.current;
-      if (!canvas) throw new Error("Canvas not available");
-      const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas context not available");
-
-      const img = new Image();
-      img.src = baseImage;
-      await new Promise((resolve) => { img.onload = resolve; });
-
-      canvas.width = img.width;
-      canvas.height = img.height;
-
-      // 1. Draw base image
-      ctx.drawImage(img, 0, 0);
-
-      // 2. Draw text
-      if (message) {
-        ctx.fillStyle = textColor;
-        ctx.font = `bold ${Math.floor(canvas.height * (fontSize / 100))}px ${selectedFont}`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        
-        // Add strong shadow instead of stroke for readability
-        ctx.shadowColor = "rgba(0,0,0,0.8)";
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 4;
-        
-        const textX = (canvas.width * textPos.x) / 100;
-        const textY = (canvas.height * textPos.y) / 100;
-        
-        ctx.fillText(message, textX, textY);
-        
-        // Reset shadow for other drawings
-        ctx.shadowColor = "transparent";
-      }
-
-      // 3. Draw DSHS Logo in top-right rounded box (Half size)
-      try {
-        const logo = new Image();
-        logo.src = "/logo.png";
-        await new Promise((resolve, reject) => {
-          logo.onload = resolve;
-          logo.onerror = reject;
-        });
-        
-        const logoHeight = canvas.height * 0.04; // Reduced to half
-        const scale = logoHeight / logo.height;
-        const logoWidth = logo.width * scale;
-        
-        const padding = canvas.height * 0.01; // Reduced padding proportionally
-        const boxWidth = logoWidth + padding * 2;
-        const boxHeight = logoHeight + padding * 2;
-        const boxX = canvas.width - boxWidth - padding;
-        const boxY = padding;
-        const radius = canvas.height * 0.01;
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-        ctx.beginPath();
-        ctx.moveTo(boxX + radius, boxY);
-        ctx.lineTo(boxX + boxWidth - radius, boxY);
-        ctx.quadraticCurveTo(boxX + boxWidth, boxY, boxX + boxWidth, boxY + radius);
-        ctx.lineTo(boxX + boxWidth, boxY + boxHeight - radius);
-        ctx.quadraticCurveTo(boxX + boxWidth, boxY + boxHeight, boxX + boxWidth - radius, boxY + boxHeight);
-        ctx.lineTo(boxX + radius, boxY + boxHeight);
-        ctx.quadraticCurveTo(boxX, boxY + boxHeight, boxX, boxY + boxHeight - radius);
-        ctx.lineTo(boxX, boxY + radius);
-        ctx.quadraticCurveTo(boxX, boxY, boxX + radius, boxY);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.drawImage(logo, boxX + padding, boxY + padding, logoWidth, logoHeight);
-      } catch (e) {
-        // Fallback text if logo fails
-        const fallbackText = "DSHS AI Booth";
-        ctx.fillStyle = "black";
-        ctx.font = `bold ${Math.floor(canvas.height * 0.02)}px sans-serif`;
-        ctx.textAlign = "right";
-        ctx.textBaseline = "top";
-        ctx.fillText(fallbackText, canvas.width - 40, 40);
-      }
-
-      const generatedFinalImage = canvas.toDataURL("image/jpeg", 0.95);
+      const generatedFinalImage = await generateComposedImage();
       setFinalImage(generatedFinalImage);
 
-      const fileName = `booth_${Date.now()}_guest.jpg`;
-      const storageRef = ref(storage, `prints/${fileName}`);
+      // Async background upload to Firebase Storage (non-blocking for print)
       try {
-        await uploadString(storageRef, generatedFinalImage, "data_url");
+        await uploadComposedImage(generatedFinalImage);
       } catch (e) {
         console.error("Firebase upload failed", e);
         setUploadWarning("클라우드 백업에 실패했지만 인쇄는 계속 진행됩니다.");
       }
 
-      // Show the generated image for a split second so the browser captures it for printing
-      setTimeout(() => {
-        window.print();
+      const completePrint = () => {
+        setIsPrinting(false);
         setIsDone(true);
         setTimeout(() => {
           sessionStorage.clear();
           router.push("/");
         }, 10000);
-      }, 500);
+      };
+
+      const handleAfterPrint = () => {
+        window.removeEventListener("afterprint", handleAfterPrint);
+        completePrint();
+      };
+
+      window.addEventListener("afterprint", handleAfterPrint, { once: true });
+
+      // Delay briefly to allow the final image to paint in the DOM before opening the print dialog
+      setTimeout(() => {
+        window.print();
+        // Fallback in case browser does not trigger afterprint event
+        setTimeout(() => {
+          window.removeEventListener("afterprint", handleAfterPrint);
+          completePrint();
+        }, 2500);
+      }, 300);
 
     } catch (err) {
       console.error(err);
       setPrintError("인쇄 준비 중 오류가 발생했습니다. 다시 시도해 주세요.");
       setIsPrinting(false);
+    }
+  };
+
+  const handleSendPhoto = async () => {
+    if (!baseImage || !phoneNumber) return;
+    if (!isValidKoreanPhoneInput(phoneNumber)) {
+      setSendError("올바른 휴대폰 번호를 입력해 주세요. (예: 010-1234-5678)");
+      return;
+    }
+
+    setIsSending(true);
+    setSendError(null);
+    setSendSuccess(false);
+
+    const controller = new AbortController();
+    const abortTimeout = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const generatedFinalImage = await generateComposedImage();
+      const imageUrl = await uploadComposedImage(generatedFinalImage);
+
+      const res = await fetch("/api/send-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phoneNumber, imageUrl }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(abortTimeout);
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "문자 발송에 실패했습니다.");
+
+      setSendSuccess(true);
+    } catch (err: any) {
+      clearTimeout(abortTimeout);
+      console.error(err);
+      const msg =
+        err.name === "AbortError"
+          ? "문자 발송 서버 요청 시간이 초과되었습니다 (20초)."
+          : err.message || "문자 발송 중 오류가 발생했습니다.";
+      setSendError(msg);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!baseImage) return;
+    try {
+      const generatedFinalImage = await generateComposedImage();
+      const now = new Date();
+      const timestamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}_${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`;
+      const fileName = `dshs_booth_${timestamp}.jpg`;
+
+      const link = document.createElement("a");
+      link.href = generatedFinalImage;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 5000);
+    } catch (err) {
+      console.error("Download failed:", err);
+      setPrintError("사진 다운로드 중 오류가 발생했습니다.");
     }
   };
 
@@ -231,7 +281,7 @@ export default function PrintPage() {
               sessionStorage.clear();
               router.push("/");
             }}
-            className="flex items-center px-8 py-4 bg-white/20 text-white font-bold rounded-full hover:bg-white/30 transition-colors mb-4"
+            className="flex items-center px-8 py-4 bg-white/20 text-white font-bold rounded-full hover:bg-white/30 transition-colors mb-4 cursor-pointer"
           >
             <Home className="w-5 h-5 mr-2" />
             첫 화면으로 바로 가기
@@ -243,25 +293,28 @@ export default function PrintPage() {
     );
   }
 
-  // If printing, we need to hide the normal UI and show the final image for the browser print engine
-  if (finalImage) {
-    return (
-      <main className="min-h-screen bg-white flex items-center justify-center">
-        <img src={finalImage} alt="Print output" className="w-full h-auto" />
-      </main>
-    );
-  }
+  const isPhoneValid = isValidKoreanPhoneInput(phoneNumber);
 
   return (
     <main className="min-h-screen bg-slate-900 p-6 flex items-center justify-center print-page relative">
+      {/* Hidden Print Container for Perfect Landscape A4 Output */}
+      {finalImage && (
+        <div className="hidden print:block fixed inset-0 w-screen h-screen z-[999999] bg-white m-0 p-0 pointer-events-none">
+          <img
+            src={finalImage}
+            alt="Print output"
+            className="w-full h-full object-contain"
+          />
+        </div>
+      )}
+
       <div className="absolute top-6 left-6 z-20 print:hidden">
         <span className="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/80 font-bold tracking-wider backdrop-blur-md">
           5단계: 마지막 꾸미기 및 인쇄
         </span>
       </div>
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 z-10">
-        
-        {/* Settings Panel */}
+
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-8 z-10 print:hidden">
         <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 flex flex-col no-print h-fit">
           <h2 className="text-2xl font-bold text-white mb-6">마지막 꾸미기</h2>
 
@@ -270,6 +323,20 @@ export default function PrintPage() {
           )}
           {uploadWarning && (
             <p className="mb-4 text-yellow-300 text-sm">{uploadWarning}</p>
+          )}
+          {sendError && (
+            <p className="mb-4 text-red-400 text-sm font-medium">{sendError}</p>
+          )}
+          {sendSuccess && (
+            <p className="mb-4 text-green-400 text-sm font-medium">
+              문자로 사진 링크를 보냈어요! 휴대폰을 확인해 주세요.
+            </p>
+          )}
+          {downloadSuccess && (
+            <p className="mb-4 text-sky-300 text-sm font-medium flex items-center">
+              <CheckCircle2 className="w-4 h-4 mr-1.5 shrink-0" />
+              사진이 컴퓨터 다운로드 폴더에 저장되었습니다!
+            </p>
           )}
           
           <div className="mb-6">
@@ -295,7 +362,7 @@ export default function PrintPage() {
                   <button
                     key={color.value}
                     onClick={() => setTextColor(color.value)}
-                    className={`w-10 h-10 rounded-full border-4 transition-transform shadow-md ${color.class} ${textColor === color.value ? 'border-pink-500 scale-110' : 'border-transparent hover:scale-105'}`}
+                    className={`w-10 h-10 rounded-full border-4 transition-transform shadow-md cursor-pointer ${color.class} ${textColor === color.value ? 'border-pink-500 scale-110' : 'border-transparent hover:scale-105'}`}
                     title={color.name}
                   />
                 ))}
@@ -319,7 +386,7 @@ export default function PrintPage() {
             </div>
           </div>
 
-          <div className="mb-10">
+          <div className="mb-6">
             <label className="block text-slate-300 mb-2 font-medium">글자 크기 조절</label>
             <input 
               type="range" 
@@ -332,14 +399,58 @@ export default function PrintPage() {
             />
           </div>
 
+          {/* Direct Computer Download Button */}
+          <div className="mb-6">
+            <button
+              onClick={handleDownload}
+              disabled={!baseImage}
+              className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-lg font-bold rounded-2xl hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(14,165,233,0.4)] cursor-pointer"
+            >
+              <Download className="w-6 h-6 mr-2" />
+              내 컴퓨터에 사진 다운로드
+            </button>
+          </div>
+
+          <div className="mb-8 p-4 bg-white/5 border border-white/10 rounded-2xl">
+            <label className="block text-slate-300 mb-2 font-medium">휴대폰 번호 (선택)</label>
+            <input
+              type="tel"
+              value={phoneNumber}
+              onChange={(e) => {
+                setPhoneNumber(e.target.value);
+                setSendError(null);
+                setSendSuccess(false);
+              }}
+              placeholder="010-1234-5678"
+              className="w-full bg-white/5 border border-white/20 rounded-xl p-4 text-white outline-none focus:border-cyan-400 mb-3"
+            />
+            <button
+              onClick={handleSendPhoto}
+              disabled={isSending || !isPhoneValid || !baseImage}
+              className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-lg font-bold rounded-xl hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer"
+            >
+              {isSending ? (
+                "문자 보내는 중..."
+              ) : (
+                <>
+                  <Smartphone className="w-6 h-6 mr-2" />
+                  문자로 사진 받기
+                </>
+              )}
+            </button>
+            <p className="text-xs text-slate-400 mt-2">
+              입력하신 번호로 사진 다운로드 링크가 문자로 전송됩니다.
+            </p>
+          </div>
+
           <div className="mt-auto space-y-4">
             <button
               onClick={handlePrint}
               disabled={isPrinting || !baseImage}
-              className="w-full flex items-center justify-center px-8 py-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-2xl font-bold rounded-2xl hover:scale-105 transition-transform disabled:opacity-50 shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+              className="w-full flex items-center justify-center px-8 py-5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-2xl font-bold rounded-2xl hover:scale-105 transition-transform disabled:opacity-50 shadow-[0_0_20px_rgba(59,130,246,0.5)] cursor-pointer"
             >
               {isPrinting ? (
-                "처리중..."
+                "인쇄 준비 중..."
               ) : (
                 <>
                   <Printer className="w-7 h-7 mr-3" />
@@ -350,14 +461,14 @@ export default function PrintPage() {
             <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={() => router.push("/result")}
-                className="flex items-center justify-center px-4 py-4 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors"
+                className="flex items-center justify-center px-4 py-4 bg-white/10 text-white font-bold rounded-2xl hover:bg-white/20 transition-colors cursor-pointer"
               >
                 <ArrowLeft className="w-5 h-5 mr-2 shrink-0" />
                 결과로 가기
               </button>
               <button
                 onClick={() => router.push("/")}
-                className="flex items-center justify-center px-4 py-4 bg-white/5 text-slate-300 font-bold rounded-2xl hover:bg-white/10 transition-colors"
+                className="flex items-center justify-center px-4 py-4 bg-white/5 text-slate-300 font-bold rounded-2xl hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <Home className="w-5 h-5 mr-2 shrink-0" />
                 처음으로
@@ -366,10 +477,9 @@ export default function PrintPage() {
           </div>
         </div>
 
-        {/* Preview Panel */}
         <div className="lg:col-span-2 bg-black/40 border border-white/10 rounded-3xl p-6 flex flex-col items-center justify-center relative shadow-2xl overflow-hidden">
           {message && (
-            <p className="text-pink-300 font-medium mb-4 animate-pulse shrink-0">
+            <p className="text-pink-300 font-medium mb-4 animate-pulse shrink-0 select-none">
               글자를 드래그해서 원하는 위치로 옮겨보세요!
             </p>
           )}
@@ -377,18 +487,15 @@ export default function PrintPage() {
           {baseImage ? (
             <div 
               ref={containerRef}
-              className="w-full relative rounded-xl overflow-hidden shadow-inner border-4 border-white/10 bg-black"
+              className="w-full relative rounded-xl overflow-hidden shadow-inner border-4 border-white/10 bg-black select-none"
               style={{ aspectRatio: '16/9', containerType: 'size' }}
             >
-              {/* Background */}
               <img src={baseImage} alt="Print background" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
               
-              {/* Top-Right Logo Overlay */}
               <div className="absolute top-4 right-4 bg-white/50 backdrop-blur-md rounded-xl p-2 shadow-lg pointer-events-none z-10">
                 <img src="/logo.png" alt="Logo" className="h-5 w-auto object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
               </div>
 
-              {/* Draggable Text Overlay */}
               {message && (
                 <div
                   className={`absolute cursor-move group ${isDragging ? 'opacity-90' : 'hover:opacity-80'} transition-opacity z-20 whitespace-nowrap`}
@@ -436,11 +543,22 @@ export default function PrintPage() {
             margin: 0; 
           }
           html, body {
-            margin: 0;
-            padding: 0;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
           }
         }
       `}</style>
     </main>
+  );
+}
+
+export default function PrintPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>}>
+      <PrintContent />
+    </Suspense>
   );
 }

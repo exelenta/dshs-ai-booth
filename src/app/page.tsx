@@ -1,8 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { Sparkles, Camera, ArrowRight, Wand2 } from "lucide-react";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Sparkles, ArrowRight, Wand2 } from "lucide-react";
+import { useState, useEffect, Suspense } from "react";
 
 const THEMES = [
   { id: "space", title: "우주 탐험", emoji: "🚀", desc: "별과 행성이 있는 신비로운 우주", color: "from-indigo-600 to-purple-600" },
@@ -11,14 +11,24 @@ const THEMES = [
   { id: "city", title: "미래 도시", emoji: "🏙️", desc: "하늘을 나는 자동차와 로봇", color: "from-rose-500 to-orange-500" },
 ];
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
-  const [selectedTheme, setSelectedTheme] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const initialTheme = searchParams.get("theme");
+
+  const [selectedTheme, setSelectedTheme] = useState<string | null>(initialTheme || null);
   const [includePhoto, setIncludePhoto] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (initialTheme) {
+      setSelectedTheme(initialTheme);
+    }
+  }, [initialTheme]);
 
   const handleStart = () => {
     if (!selectedTheme) return;
     
+    sessionStorage.setItem("userTheme", selectedTheme);
     if (includePhoto) {
       router.push(`/camera?theme=${selectedTheme}`);
     } else {
@@ -130,5 +140,13 @@ export default function Home() {
         }
       `}</style>
     </main>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
