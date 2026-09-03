@@ -22,64 +22,71 @@ function HomeContent() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
-      {/* Ghibli sky backdrop */}
+      {/* Soft Sky Watercolor Backdrop */}
       <img
         src="/ghibli-sky.jpg"
-        alt=""
+        alt="Sky background"
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
       />
-      {/* warm wash overlay */}
+      {/* Light warm wash overlay for soft fairytale mood */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-amber-900/20"
       />
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <p className="mb-2 flex items-center justify-center gap-1.5 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-white drop-shadow">
-            <Sparkles className="h-3.5 w-3.5" />
-            Spirited Booth
-          </p>
-          <h1 className="font-bold text-3xl md:text-4xl text-white drop-shadow-lg">
+        {/* Header with warm storybook badge */}
+        <div className="mb-6 text-center">
+          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/80 border border-amber-200/80 text-amber-800 text-xs font-bold shadow-sm backdrop-blur-md mb-3">
+            <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+            <span>따뜻한 마법 스케치북</span>
+          </div>
+          <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
             우리가족 상상스케치
           </h1>
-          <p className="mt-2 text-white/80 text-base md:text-lg drop-shadow">
-            말로 그리는 우리 가족의 꿈
+          <p className="mt-2 text-white/90 text-base md:text-lg font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
+            소중한 우리 가족의 얼굴과 상상을 마법 같은 그림으로 완성해요
           </p>
         </div>
 
-        {/* Glass card */}
-        <div className="w-full rounded-[2rem] border border-white/50 bg-white/20 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:p-8">
-          <h2 className="text-xl md:text-2xl font-bold mb-6 text-center flex items-center justify-center text-white drop-shadow">
-            <Wand2 className="w-6 h-6 mr-2 text-amber-300" />
-            어떻게 AI 그림을 그려볼까요?
+        {/* High-contrast Warm Glassmorphism Panel */}
+        <div className="w-full rounded-[28px] border border-white/90 bg-white/88 p-6 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] backdrop-blur-xl sm:p-8">
+          <h2 className="text-xl md:text-2xl font-bold mb-6 text-center flex items-center justify-center text-stone-800">
+            <Wand2 className="w-6 h-6 mr-2 text-amber-500" />
+            어떤 마법으로 그림을 시작할까요?
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Option 1: Webcam Photo Synthesis */}
             <button
               onClick={() => handleSelectMode("camera")}
-              className={`relative overflow-hidden group flex flex-col items-center p-7 rounded-2xl border-2 text-center transition-all duration-300 cursor-pointer ${
+              className={`relative overflow-hidden group flex flex-col items-center p-7 rounded-3xl border-2 text-center transition-all duration-300 cursor-pointer ${
                 selectedMode === "camera"
-                  ? "border-amber-400 bg-amber-400/20 scale-[1.02] shadow-[0_0_30px_rgba(251,191,36,0.4)]"
-                  : "border-white/30 bg-white/10 hover:bg-white/20 hover:border-amber-400/60 hover:scale-[1.02]"
+                  ? "border-amber-400 bg-amber-50/90 scale-[1.02] shadow-[0_8px_24px_rgba(245,158,11,0.2)]"
+                  : "border-amber-100 bg-white/85 hover:bg-white hover:border-amber-400/80 hover:scale-[1.02] shadow-sm hover:shadow-md"
               }`}
             >
-              <div className="absolute top-3 right-3 px-2.5 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-xs font-bold rounded-full shadow-md text-white">
+              {/* Pastel Pill Badge */}
+              <div className="absolute top-4 right-4 px-3 py-1 bg-rose-100 text-rose-700 text-xs font-bold rounded-full border border-rose-200/80 shadow-xs">
                 인기 최고 ⭐
               </div>
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center mb-5 shadow-xl group-hover:scale-110 transition-transform">
-                <Camera className="w-10 h-10 text-white" />
+
+              {/* High-quality Gradient Circle Shape Icon */}
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-amber-400 via-orange-400 to-rose-400 p-0.5 shadow-md flex items-center justify-center mb-5 group-hover:scale-108 transition-transform duration-300">
+                <div className="w-full h-full rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center shadow-inner">
+                  <Camera className="w-9 h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-              <h3 className="text-xl font-extrabold mb-2 text-white group-hover:text-amber-200 transition-colors drop-shadow">
+
+              <h3 className="text-xl font-extrabold mb-2 text-stone-800 group-hover:text-amber-700 transition-colors">
                 내 얼굴 넣고 그리기
               </h3>
-              <p className="text-white/75 text-sm leading-relaxed mb-5">
-                웹캠으로 사진을 찍어 내 얼굴이 주인공인 멋진 AI 일러스트를 만들어요!
+              <p className="text-stone-600 text-sm leading-relaxed mb-6 font-medium">
+                카메라로 사진을 찍어 내 얼굴과 포즈가 그대로 살아있는 마법 동화 일러스트를 만들어요!
               </p>
-              <span className="mt-auto inline-flex items-center px-5 py-2 rounded-full bg-amber-400/30 text-amber-100 font-bold text-sm border border-amber-400/50 group-hover:bg-amber-400 group-hover:text-white transition-all">
+              
+              <span className="mt-auto inline-flex items-center px-5 py-2.5 rounded-full bg-amber-100/80 text-amber-900 font-bold text-sm border border-amber-200/80 group-hover:bg-amber-500 group-hover:text-white group-hover:border-amber-500 transition-all shadow-xs">
                 사진 찍고 시작하기
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </span>
@@ -88,26 +95,33 @@ function HomeContent() {
             {/* Option 2: Pure Imagination Art */}
             <button
               onClick={() => handleSelectMode("pure")}
-              className={`relative overflow-hidden group flex flex-col items-center p-7 rounded-2xl border-2 text-center transition-all duration-300 cursor-pointer ${
+              className={`relative overflow-hidden group flex flex-col items-center p-7 rounded-3xl border-2 text-center transition-all duration-300 cursor-pointer ${
                 selectedMode === "pure"
-                  ? "border-sky-300 bg-sky-400/20 scale-[1.02] shadow-[0_0_30px_rgba(125,211,252,0.4)]"
-                  : "border-white/30 bg-white/10 hover:bg-white/20 hover:border-sky-300/60 hover:scale-[1.02]"
+                  ? "border-sky-400 bg-sky-50/90 scale-[1.02] shadow-[0_8px_24px_rgba(56,189,248,0.2)]"
+                  : "border-stone-200/80 bg-white/85 hover:bg-white hover:border-sky-400/80 hover:scale-[1.02] shadow-sm hover:shadow-md"
               }`}
             >
-              <div className="absolute top-3 right-3 px-2.5 py-1 bg-gradient-to-r from-sky-400 to-blue-500 text-xs font-bold rounded-full shadow-md text-white">
+              {/* Pastel Pill Badge */}
+              <div className="absolute top-4 right-4 px-3 py-1 bg-sky-100 text-sky-700 text-xs font-bold rounded-full border border-sky-200/80 shadow-xs">
                 빠르고 간편 🚀
               </div>
-              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-sky-400 to-blue-500 flex items-center justify-center mb-5 shadow-xl group-hover:scale-110 transition-transform">
-                <Palette className="w-10 h-10 text-white" />
+
+              {/* High-quality Gradient Circle Shape Icon */}
+              <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-sky-400 via-teal-300 to-emerald-400 p-0.5 shadow-md flex items-center justify-center mb-5 group-hover:scale-108 transition-transform duration-300">
+                <div className="w-full h-full rounded-full bg-gradient-to-tr from-sky-500 to-teal-500 flex items-center justify-center shadow-inner">
+                  <Palette className="w-9 h-9 text-white drop-shadow-sm" />
+                </div>
               </div>
-              <h3 className="text-xl font-extrabold mb-2 text-white group-hover:text-sky-200 transition-colors drop-shadow">
+
+              <h3 className="text-xl font-extrabold mb-2 text-stone-800 group-hover:text-sky-700 transition-colors">
                 순수 상상화 그리기
               </h3>
-              <p className="text-white/75 text-sm leading-relaxed mb-5">
-                사진 촬영 없이, AI가 상상한 신비로운 풍경과 마법 세계를 자유롭게 그려요!
+              <p className="text-stone-600 text-sm leading-relaxed mb-6 font-medium">
+                사진 촬영 없이, AI가 상상한 신비로운 판타지 세계와 아름다운 동화 풍경을 자유롭게 그려요!
               </p>
-              <span className="mt-auto inline-flex items-center px-5 py-2 rounded-full bg-sky-400/30 text-sky-100 font-bold text-sm border border-sky-400/50 group-hover:bg-sky-400 group-hover:text-white transition-all">
-                바로 프롬프트 만들기
+
+              <span className="mt-auto inline-flex items-center px-5 py-2.5 rounded-full bg-sky-100/80 text-sky-900 font-bold text-sm border border-sky-200/80 group-hover:bg-sky-500 group-hover:text-white group-hover:border-sky-500 transition-all shadow-xs">
+                바로 상상화 그리기
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </span>
             </button>
@@ -123,7 +137,7 @@ export default function Home() {
     <Suspense fallback={
       <div className="relative flex min-h-screen items-center justify-center">
         <img src="/ghibli-sky.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="relative z-10 text-white font-semibold">Loading...</div>
+        <div className="relative z-10 text-stone-800 font-bold bg-white/80 px-6 py-3 rounded-full backdrop-blur-md">마법 스케치북을 여는 중...</div>
       </div>
     }>
       <HomeContent />

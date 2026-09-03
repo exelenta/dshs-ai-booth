@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, ArrowRight, Wand2, Sparkles } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Wand2, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 
 function ResultContent() {
@@ -66,7 +66,7 @@ function ResultContent() {
       if (!res.ok) throw new Error(data.error || "이미지 생성에 실패했습니다.");
       
       setBgImage(data.image);
-      sessionStorage.setItem("bgImage", data.image); // Cache it
+      sessionStorage.setItem("bgImage", data.image);
       setLoading(false);
     } catch (err: any) {
       console.error(err);
@@ -99,11 +99,9 @@ function ResultContent() {
       let cropH = bg.height;
 
       if (imgAR < targetAR) {
-        // Image is taller than 16:9 (e.g. 1:1)
         cropH = bg.width / targetAR;
         cropY = (bg.height - cropH) / 2;
       } else if (imgAR > targetAR) {
-        // Image is wider than 16:9
         cropW = bg.height * targetAR;
         cropX = (bg.width - cropW) / 2;
       }
@@ -111,7 +109,6 @@ function ResultContent() {
       canvas.width = Math.round(cropW);
       canvas.height = Math.round(cropH);
 
-      // Draw 16:9 cropped background onto canvas
       ctx.drawImage(bg, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
 
       const finalImg = canvas.toDataURL("image/jpeg", 0.95);
@@ -126,95 +123,106 @@ function ResultContent() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
-      {/* Ghibli sky backdrop */}
+      {/* Sky backdrop */}
       <img
         src="/ghibli-sky.jpg"
-        alt=""
+        alt="Sky background"
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 h-full w-full object-cover"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-amber-900/20"
       />
 
       <div className="relative z-10 w-full max-w-5xl flex flex-col items-center">
-        {/* Step badge */}
-        <div className="mb-5">
-          <span className="px-4 py-1.5 bg-white/20 border border-white/40 rounded-full text-white font-semibold text-sm backdrop-blur-md">
-            4단계: 결과 확인
+        {/* Step Badge */}
+        <div className="mb-4">
+          <span className="px-4 py-1.5 bg-white/90 border border-amber-200/80 rounded-full text-amber-900 font-bold text-xs backdrop-blur-md shadow-xs flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            4단계: 마법 결과 확인
           </span>
         </div>
 
         {loading ? (
-          /* Loading State - Glass Card */
-          <div className="w-full rounded-[2rem] border border-white/50 bg-white/15 p-12 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl flex flex-col items-center justify-center text-center">
-            <div className="relative w-28 h-28 mb-6">
-              <div className="absolute inset-0 rounded-full border-4 border-white/20"></div>
-              <div className="absolute inset-0 rounded-full border-4 border-amber-400 border-t-transparent animate-spin"></div>
-              <Loader2 className="absolute inset-0 m-auto w-10 h-10 text-amber-300 animate-pulse" />
+          /* Loading State - Warm Magic Sketchbook Card */
+          <div className="w-full rounded-[28px] border border-white/95 bg-white/90 p-12 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] backdrop-blur-xl flex flex-col items-center justify-center text-center">
+            <div className="relative w-24 h-24 mb-6">
+              <div className="absolute inset-0 rounded-full border-4 border-amber-100"></div>
+              <div className="absolute inset-0 rounded-full border-4 border-amber-500 border-t-transparent animate-spin"></div>
+              <Wand2 className="absolute inset-0 m-auto w-9 h-9 text-amber-500 animate-pulse" />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-3 drop-shadow">인물 화풍 변환 마법을 부리는 중...</h2>
-            <p className="text-white/70 mb-2">얼굴과 포즈의 특징을 살려 선택하신 화풍으로 그림을 다시 그리고 있어요.</p>
-            <p className="text-sm text-amber-300">이질감 없는 완벽한 일체형 작품이 곧 완성됩니다!</p>
+            <h2 className="text-2xl font-extrabold text-stone-800 mb-2 font-display">
+              마법 스케치북이 그림을 그리고 있어요 ✨
+            </h2>
+            <p className="text-stone-600 text-sm md:text-base mb-2 font-medium">
+              선택하신 화풍과 배경에 맞춰 우리 가족의 소중한 순간을 한 폭의 명작으로 완성하고 있습니다.
+            </p>
+            <p className="text-xs text-amber-700 font-semibold bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60 mt-2">
+              잠시만 기다려주시면 아름다운 작품이 펼쳐집니다
+            </p>
           </div>
         ) : error ? (
           /* Error State */
-          <div className="w-full rounded-[2rem] border border-red-400/40 bg-red-900/20 p-10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl flex flex-col items-center text-center">
-            <h2 className="text-2xl font-bold text-red-300 mb-4">앗! 마법 스케치북이 잠시 쉬고 있어요</h2>
-            <p className="text-white/80 mb-8">{error}</p>
+          <div className="w-full rounded-[28px] border border-rose-200 bg-white/92 p-10 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] backdrop-blur-xl flex flex-col items-center text-center">
+            <h2 className="text-2xl font-bold text-rose-600 mb-3">앗! 마법 스케치북이 잠시 숨을 고르고 있어요</h2>
+            <p className="text-stone-600 mb-6 font-medium">{error}</p>
             <button
               onClick={() => router.push("/")}
-              className="px-8 py-3 bg-white/20 text-white rounded-full font-bold text-lg hover:bg-white/30 transition-colors cursor-pointer backdrop-blur"
+              className="px-6 py-3 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-full font-bold text-sm transition-colors cursor-pointer border border-stone-200"
             >
               처음으로 돌아가기
             </button>
           </div>
         ) : (
-          /* Result State - Glass Card */
-          <div className="w-full rounded-[2rem] border border-white/50 bg-white/15 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl md:p-8">
+          /* Result State - Modern Polaroid Frame Presentation */
+          <div className="w-full rounded-[28px] border border-white/95 bg-white/90 p-6 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] backdrop-blur-xl md:p-8">
             <div className="text-center mb-5">
-              <div className="inline-flex items-center justify-center px-4 py-1.5 bg-amber-400/20 border border-amber-400/40 rounded-full mb-3">
-                <Wand2 className="w-4 h-4 text-amber-300 mr-2" />
-                <span className="text-amber-200 font-bold text-sm">인물 화풍 완벽 일체화 완료!</span>
+              <div className="inline-flex items-center justify-center px-4 py-1.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-full text-xs font-bold mb-2.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 mr-1.5" />
+                마법 일러스트 완성!
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow">짜잔! 상상 속 그림이 완성되었어요</h1>
-              <p className="text-white/70 text-sm md:text-base">
-                인물과 배경이 어색한 오려 붙이기가 아닌, 동일한 화풍과 조명으로 하나가 된 예술 작품입니다.
+              <h1 className="text-2xl md:text-3xl font-extrabold text-stone-800 mb-1 font-display">
+                짜잔! 상상 속 그림이 완성되었어요 🎉
+              </h1>
+              <p className="text-stone-600 text-sm md:text-base font-medium">
+                인물과 화풍, 배경이 자연스럽게 하나가 된 특별한 예술 작품입니다.
               </p>
             </div>
 
             {bgImage && (
-              <div 
-                className="w-full max-w-4xl mx-auto relative rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border-2 border-white/30 mb-6 bg-black select-none"
-                style={{ aspectRatio: '16/9' }}
-              >
-                <img
-                  src={bgImage}
-                  alt="AI Redrawn Masterpiece"
-                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                />
-                <span className="absolute left-3 top-3 rounded-full bg-black/50 px-3 py-1 font-mono text-[0.6rem] font-semibold uppercase tracking-widest text-white backdrop-blur">
-                  <Sparkles className="inline w-3 h-3 mr-1 text-amber-300" />
-                  AI 생성 작품
-                </span>
+              <div className="w-full max-w-4xl mx-auto p-2 sm:p-3 bg-white rounded-3xl shadow-xl shadow-stone-400/20 border border-stone-200/80 mb-6">
+                <div 
+                  className="w-full relative rounded-2xl overflow-hidden bg-stone-100 select-none shadow-inner"
+                  style={{ aspectRatio: '16/9' }}
+                >
+                  <img
+                    src={bgImage}
+                    alt="AI Redrawn Masterpiece"
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  />
+                  <span className="absolute left-3 top-3 rounded-full bg-white/85 px-3 py-1 text-[0.7rem] font-bold text-stone-800 backdrop-blur-md border border-white/60 shadow-xs flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-amber-500" />
+                    마법 완성작
+                  </span>
+                </div>
               </div>
             )}
 
-            <div className="flex gap-4 flex-wrap justify-center">
+            <div className="flex gap-3 flex-wrap justify-center">
               <button
                 onClick={() => router.push(`/prompt?theme=${currentTheme}`)}
-                className="flex items-center justify-center px-6 py-3.5 rounded-full border border-white/40 bg-white/10 text-white font-bold hover:bg-white/20 transition-colors cursor-pointer backdrop-blur"
+                className="flex items-center justify-center px-5 py-3.5 rounded-xl border border-stone-200 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-sm transition-colors cursor-pointer shadow-xs"
               >
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                프롬프트 다시 수정
+                <ArrowLeft className="w-4 h-4 mr-1.5" />
+                화풍 다시 고르기
               </button>
               <button
                 onClick={handleNextStep}
-                className="flex items-center justify-center px-8 py-3.5 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-white text-xl font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_30px_rgba(251,191,36,0.5)] cursor-pointer"
+                className="flex items-center justify-center px-8 py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-base md:text-lg font-bold rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
               >
                 마지막 꾸미기 및 인쇄
-                <ArrowRight className="w-6 h-6 ml-2" />
+                <ArrowRight className="w-5 h-5 ml-2" />
               </button>
             </div>
           </div>
@@ -232,7 +240,7 @@ export default function ResultPage() {
     <Suspense fallback={
       <div className="relative flex min-h-screen items-center justify-center">
         <img src="/ghibli-sky.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="relative z-10 text-white font-semibold">Loading...</div>
+        <div className="relative z-10 text-stone-800 font-bold bg-white/80 px-6 py-3 rounded-full backdrop-blur-md">결과를 준비하는 중...</div>
       </div>
     }>
       <ResultContent />

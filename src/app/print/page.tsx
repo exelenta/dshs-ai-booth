@@ -16,14 +16,14 @@ const FONTS = [
 ];
 
 const PRESET_COLORS = [
-  { name: "흰색", value: "#FFFFFF", class: "bg-white" },
+  { name: "흰색", value: "#FFFFFF", class: "bg-white border border-stone-300" },
   { name: "레몬노랑", value: "#FDE047", class: "bg-yellow-300" },
   { name: "네온연두", value: "#4ADE80", class: "bg-emerald-400" },
   { name: "스카이블루", value: "#38BDF8", class: "bg-sky-400" },
   { name: "로즈핑크", value: "#F472B6", class: "bg-pink-400" },
   { name: "라벤더", value: "#C084FC", class: "bg-purple-400" },
   { name: "오렌지", value: "#FB923C", class: "bg-orange-400" },
-  { name: "다크네이비", value: "#0F172A", class: "bg-slate-900 border border-white/40" },
+  { name: "다크네이비", value: "#0F172A", class: "bg-slate-900 border border-stone-400" },
 ];
 
 function PrintContent() {
@@ -36,7 +36,7 @@ function PrintContent() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [selectedFont, setSelectedFont] = useState(FONTS[0].value);
   const [fontSize, setFontSize] = useState(5);
-  const [textColor, setTextColor] = useState("white");
+  const [textColor, setTextColor] = useState("#FFFFFF");
   
   const [isPrinting, setIsPrinting] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -232,10 +232,8 @@ function PrintContent() {
 
       window.addEventListener("afterprint", handleAfterPrint, { once: true });
 
-      // Delay briefly to allow the final image to paint in the DOM before opening the print dialog
       setTimeout(() => {
         window.print();
-        // Fallback in case browser does not trigger afterprint event
         setTimeout(() => {
           window.removeEventListener("afterprint", handleAfterPrint);
           completePrint();
@@ -320,24 +318,31 @@ function PrintContent() {
     return (
       <main className="relative flex min-h-screen items-center justify-center p-6 overflow-hidden">
         <img src="/ghibli-sky.jpg" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
-        <div className="relative z-10 rounded-[2rem] border border-white/50 bg-white/20 p-14 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl flex flex-col items-center justify-center text-center max-w-2xl w-full">
-          <CheckCircle2 className="w-20 h-20 text-amber-300 mb-5" />
-          <h1 className="text-3xl font-bold text-white mb-3 drop-shadow">참여해 주셔서 감사합니다!</h1>
-          <p className="text-white/75 text-lg mb-8">프린터에서 멋진 추억을 확인해보세요.</p>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-amber-900/20" />
+        
+        <div className="relative z-10 rounded-[28px] border border-white/95 bg-[#FDFBF7] p-12 shadow-2xl flex flex-col items-center justify-center text-center max-w-xl w-full">
+          <div className="w-20 h-20 rounded-full bg-amber-100 flex items-center justify-center mb-5 text-amber-600 shadow-inner">
+            <CheckCircle2 className="w-12 h-12" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-stone-800 mb-2 font-display">
+            참여해 주셔서 감사합니다! 🎉
+          </h1>
+          <p className="text-stone-600 text-base mb-8 font-medium">
+            프린터에서 출력된 소중한 우리가족 추억 사진을 확인해보세요.
+          </p>
           
           <button
             onClick={() => {
               sessionStorage.clear();
               router.push("/");
             }}
-            className="flex items-center px-8 py-3.5 bg-white/20 text-white font-bold rounded-full hover:bg-white/30 transition-colors mb-4 cursor-pointer backdrop-blur"
+            className="flex items-center px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-base rounded-2xl transition-all shadow-md hover:shadow-lg cursor-pointer hover:scale-[1.01]"
           >
             <Home className="w-5 h-5 mr-2" />
             첫 화면으로 바로 가기
           </button>
           
-          <p className="text-sm text-white/40 animate-pulse mt-2">잠시 후 자동으로 처음 화면으로 돌아갑니다...</p>
+          <p className="text-xs text-stone-400 animate-pulse mt-4 font-medium">잠시 후 자동으로 처음 화면으로 돌아갑니다...</p>
         </div>
       </main>
     );
@@ -347,16 +352,16 @@ function PrintContent() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center p-4 sm:p-6 overflow-hidden print-page">
-      {/* Ghibli sky backdrop */}
+      {/* Sky Backdrop */}
       <img
         src="/ghibli-sky.jpg"
-        alt=""
+        alt="Sky background"
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 h-full w-full object-cover print:hidden"
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 print:hidden"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-amber-900/20 print:hidden"
       />
 
       {/* Hidden Print Container for Perfect Landscape A4 Output */}
@@ -371,76 +376,85 @@ function PrintContent() {
       )}
 
       <div className="relative z-10 w-full max-w-6xl flex flex-col print:hidden">
-        {/* Step badge */}
-        <div className="mb-5">
-          <span className="px-4 py-1.5 bg-white/20 border border-white/40 rounded-full text-white font-semibold text-sm backdrop-blur-md">
+        {/* Step Badge */}
+        <div className="mb-4">
+          <span className="px-4 py-1.5 bg-white/90 border border-amber-200/80 rounded-full text-amber-900 font-bold text-xs backdrop-blur-md shadow-xs flex items-center gap-1.5 w-fit">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             5단계: 마지막 꾸미기 및 인쇄
           </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Controls Panel - Glass Card */}
-          <div className="rounded-[2rem] border border-white/50 bg-white/15 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl flex flex-col h-fit">
-            <h2 className="text-xl font-bold text-white mb-5 flex items-center drop-shadow">
-              <Sparkles className="w-5 h-5 mr-2 text-amber-300" />
-              마지막 꾸미기
-            </h2>
+          {/* Left Form Panel - Soft Cream Background with Unified Orange/Amber Theme */}
+          <div className="rounded-[28px] border border-amber-200/80 bg-[#FDFBF7] p-6 md:p-7 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] flex flex-col h-fit">
+            <div className="flex items-center justify-between mb-5 pb-3 border-b border-amber-200/60">
+              <h2 className="text-xl font-extrabold text-stone-800 flex items-center">
+                <Sparkles className="w-5 h-5 mr-2 text-amber-500" />
+                마지막 꾸미기
+              </h2>
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200/60">
+                인쇄 전 설정
+              </span>
+            </div>
 
             {printError && (
-              <p className="mb-4 text-red-300 text-sm font-medium">{printError}</p>
+              <p className="mb-4 text-rose-600 text-xs font-bold p-2.5 bg-rose-50 rounded-xl border border-rose-200">{printError}</p>
             )}
             {uploadWarning && (
-              <p className="mb-4 text-amber-300 text-sm">{uploadWarning}</p>
+              <p className="mb-4 text-amber-800 text-xs font-semibold p-2.5 bg-amber-50 rounded-xl border border-amber-200">{uploadWarning}</p>
             )}
             {sendError && (
-              <p className="mb-4 text-red-300 text-sm font-medium">{sendError}</p>
+              <p className="mb-4 text-rose-600 text-xs font-bold p-2.5 bg-rose-50 rounded-xl border border-rose-200">{sendError}</p>
             )}
             {sendSuccess && (
-              <p className="mb-4 text-emerald-300 text-sm font-medium">
+              <p className="mb-4 text-emerald-700 text-xs font-bold p-2.5 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center">
+                <CheckCircle2 className="w-4 h-4 mr-1.5 shrink-0" />
                 문자로 사진 링크를 보냈어요! 휴대폰을 확인해 주세요.
               </p>
             )}
             {downloadSuccess && (
-              <p className="mb-4 text-sky-300 text-sm font-medium flex items-center">
+              <p className="mb-4 text-sky-800 text-xs font-bold p-2.5 bg-sky-50 rounded-xl border border-sky-200 flex items-center">
                 <CheckCircle2 className="w-4 h-4 mr-1.5 shrink-0" />
                 사진이 컴퓨터 다운로드 폴더에 저장되었습니다!
               </p>
             )}
             
-            <div className="mb-5">
-              <label className="block text-white/80 mb-2 font-medium text-sm">나만의 멘트 (선택)</label>
+            {/* Message Input - 1.5x Padding & Clean Light Gray Border */}
+            <div className="mb-4">
+              <label className="block text-stone-700 mb-1.5 font-bold text-sm">나만의 멘트 넣기 (선택)</label>
               <input 
                 type="text"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="예: 우리가족 사랑해!"
-                className="w-full bg-black/30 border border-white/20 rounded-xl p-3 text-white outline-none focus:border-amber-400 placeholder-white/30 text-sm"
+                placeholder="예: 2026 우리 가족 사랑해!"
+                className="w-full bg-white border border-stone-200 rounded-xl py-3.5 px-4 text-stone-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 placeholder-stone-400 text-sm md:text-base font-medium transition-all shadow-xs"
               />
             </div>
 
-            <div className="mb-5">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-white/80 font-medium text-sm">글자 색상</label>
+            {/* Text Color Picker */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-stone-700 font-bold text-sm">글자 색상</label>
                 <button
                   type="button"
                   onClick={handlePickColor}
-                  className="flex items-center px-2.5 py-1 bg-white/10 hover:bg-white/20 text-amber-300 border border-amber-400/40 rounded-lg text-xs font-bold transition-all cursor-pointer active:scale-95"
+                  className="flex items-center px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 rounded-lg text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95"
                   title="사진 속 원하는 색상을 스포이드로 직접 찍어보세요"
                 >
-                  <Pipette className="w-3 h-3 mr-1 text-amber-400" />
-                  스포이드
+                  <Pipette className="w-3.5 h-3.5 mr-1 text-amber-600" />
+                  스포이드 추출
                 </button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 p-2.5 bg-black/20 border border-white/15 rounded-xl">
+              <div className="flex flex-wrap items-center gap-2 p-3 bg-white border border-stone-200 rounded-xl shadow-xs">
                 {PRESET_COLORS.map((color) => (
                   <button
                     key={color.value}
                     type="button"
                     onClick={() => setTextColor(color.value)}
-                    className={`w-6 h-6 rounded-full border-2 transition-all shadow-md cursor-pointer ${color.class} ${
+                    className={`w-7 h-7 rounded-full border-2 transition-all shadow-xs cursor-pointer ${color.class} ${
                       textColor.toLowerCase() === color.value.toLowerCase()
-                        ? "border-amber-400 scale-125 ring-2 ring-amber-400/60"
+                        ? "border-amber-500 scale-120 ring-2 ring-amber-400/50"
                         : "border-transparent hover:scale-110"
                     }`}
                     title={color.name}
@@ -454,15 +468,15 @@ function PrintContent() {
                     type="color"
                     value={textColor.startsWith("#") ? textColor : "#FFFFFF"}
                     onChange={(e) => setTextColor(e.target.value)}
-                    className="w-6 h-6 rounded-full cursor-pointer opacity-0 absolute inset-0 z-10"
+                    className="w-7 h-7 rounded-full cursor-pointer opacity-0 absolute inset-0 z-10"
                     title="직접 색상 선택"
                   />
                   <div
-                    className="w-6 h-6 rounded-full border border-white/40 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 transition-transform"
+                    className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center cursor-pointer shadow-xs hover:scale-110 transition-transform"
                     style={{ background: textColor }}
                     title={`현재 색상: ${textColor} (클릭하여 직접 선택)`}
                   >
-                    <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                    <span className="text-[10px] font-bold text-stone-700 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
                       +
                     </span>
                   </div>
@@ -470,17 +484,18 @@ function PrintContent() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-5">
+            {/* Font and Size Controls - 1.5x Padding & Clean Border */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <div>
-                <label className="block text-white/80 mb-2 font-medium text-sm">글꼴 선택</label>
+                <label className="block text-stone-700 mb-1.5 font-bold text-sm">글꼴 선택</label>
                 <select
                   value={selectedFont}
                   onChange={(e) => setSelectedFont(e.target.value)}
-                  className="w-full bg-black/30 border border-white/20 rounded-xl p-2.5 text-white outline-none focus:border-amber-400 appearance-none cursor-pointer text-sm"
+                  className="w-full bg-white border border-stone-200 rounded-xl py-3 px-3.5 text-stone-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 cursor-pointer text-sm font-semibold shadow-xs"
                   style={{ fontFamily: selectedFont }}
                 >
                   {FONTS.map(font => (
-                    <option key={font.id} value={font.value} className="bg-slate-800 text-white py-2" style={{ fontFamily: font.value }}>
+                    <option key={font.id} value={font.value} className="bg-white text-stone-800 py-2" style={{ fontFamily: font.value }}>
                       {font.name}
                     </option>
                   ))}
@@ -488,8 +503,8 @@ function PrintContent() {
               </div>
 
               <div>
-                <label className="block text-white/80 mb-2 font-medium text-sm">글자 크기</label>
-                <div className="h-[42px] flex items-center">
+                <label className="block text-stone-700 mb-1.5 font-bold text-sm">글자 크기 ({fontSize})</label>
+                <div className="h-[46px] flex items-center px-2 bg-white border border-stone-200 rounded-xl shadow-xs">
                   <input 
                     type="range" 
                     min="2" 
@@ -497,27 +512,27 @@ function PrintContent() {
                     step="0.5"
                     value={fontSize} 
                     onChange={(e) => setFontSize(Number(e.target.value))} 
-                    className="w-full accent-amber-400 cursor-pointer"
+                    className="w-full accent-amber-500 cursor-pointer"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Download Button */}
-            <div className="mb-5">
+            {/* Secondary Action 1: Download Button (Outline/Soft Warm Style) */}
+            <div className="mb-3">
               <button
                 onClick={handleDownload}
                 disabled={!baseImage}
-                className="w-full flex items-center justify-center px-5 py-3.5 bg-gradient-to-r from-sky-500 to-blue-600 text-white text-base font-bold rounded-2xl hover:scale-[1.02] transition-transform shadow-[0_0_20px_rgba(14,165,233,0.4)] cursor-pointer"
+                className="w-full flex items-center justify-center px-4 py-3 bg-white hover:bg-amber-50 text-amber-900 border-2 border-amber-300 hover:border-amber-400 text-sm md:text-base font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-[0.99]"
               >
-                <Download className="w-5 h-5 mr-2" />
+                <Download className="w-4 h-4 mr-2 text-amber-600" />
                 내 컴퓨터에 사진 다운로드
               </button>
             </div>
 
-            {/* SMS Section */}
-            <div className="mb-6 p-4 bg-black/20 border border-white/15 rounded-2xl">
-              <label className="block text-white/80 mb-2 font-medium text-sm">휴대폰 번호 (선택)</label>
+            {/* Secondary Action 2: SMS Section (Outline/Soft Warm Style) */}
+            <div className="mb-5 p-3.5 bg-white border border-stone-200 rounded-2xl shadow-xs">
+              <label className="block text-stone-700 mb-1.5 font-bold text-xs">휴대폰 번호로 사진 받기 (선택)</label>
               <input
                 type="tel"
                 value={phoneNumber}
@@ -527,115 +542,122 @@ function PrintContent() {
                   setSendSuccess(false);
                 }}
                 placeholder="010-1234-5678"
-                className="w-full bg-black/30 border border-white/20 rounded-xl p-3 text-white outline-none focus:border-amber-400 mb-3 placeholder-white/30 text-sm"
+                className="w-full bg-[#FAF8F5] border border-stone-200 rounded-xl py-2.5 px-3.5 text-stone-800 outline-none focus:border-amber-500 focus:bg-white mb-2.5 text-sm font-medium"
               />
               <button
                 onClick={handleSendPhoto}
                 disabled={isSending || !isPhoneValid || !baseImage}
-                className="w-full flex items-center justify-center px-5 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-base font-bold rounded-xl hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.4)] cursor-pointer"
+                className="w-full flex items-center justify-center px-4 py-2.5 bg-white hover:bg-amber-50 text-amber-900 border-2 border-amber-300 hover:border-amber-400 text-sm font-bold rounded-xl transition-all disabled:opacity-40 disabled:hover:bg-white cursor-pointer"
               >
                 {isSending ? (
-                  "문자 보내는 중..."
+                  "문자 발송 중..."
                 ) : (
                   <>
-                    <Smartphone className="w-5 h-5 mr-2" />
-                    문자로 사진 받기
+                    <Smartphone className="w-4 h-4 mr-1.5 text-amber-600" />
+                    문자로 사진 링크 받기
                   </>
                 )}
               </button>
-              <p className="text-xs text-white/40 mt-2">
-                입력하신 번호로 사진 다운로드 링크가 문자로 전송됩니다.
-              </p>
             </div>
 
+            {/* Primary Action Button: Solid Orange/Amber Gradient */}
             <div className="mt-auto space-y-3">
               <button
                 onClick={handlePrint}
                 disabled={isPrinting || !baseImage}
-                className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 text-white text-xl font-bold rounded-2xl hover:scale-105 transition-transform disabled:opacity-50 shadow-[0_0_20px_rgba(251,191,36,0.5)] cursor-pointer"
+                className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xl font-extrabold rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer font-display"
               >
                 {isPrinting ? (
                   "인쇄 준비 중..."
                 ) : (
                   <>
-                    <Printer className="w-6 h-6 mr-2" />
-                    진짜 인쇄하기!
+                    <Printer className="w-6 h-6 mr-2.5" />
+                    진짜 인쇄하기! 🖨️
                   </>
                 )}
               </button>
-              <div className="grid grid-cols-2 gap-3">
+
+              {/* Navigation Ghost Buttons */}
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   onClick={() => router.push("/result")}
-                  className="flex items-center justify-center px-4 py-3.5 rounded-2xl border border-white/40 bg-white/10 text-white font-bold text-sm hover:bg-white/20 transition-colors cursor-pointer"
+                  className="flex items-center justify-center px-4 py-3 rounded-xl border border-stone-200 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs transition-colors cursor-pointer"
                 >
-                  <ArrowLeft className="w-4 h-4 mr-1.5 shrink-0" />
+                  <ArrowLeft className="w-3.5 h-3.5 mr-1" />
                   결과로 가기
                 </button>
                 <button
                   onClick={() => router.push("/")}
-                  className="flex items-center justify-center px-4 py-3.5 bg-white/5 text-white/70 font-bold rounded-2xl text-sm hover:bg-white/10 transition-colors cursor-pointer"
+                  className="flex items-center justify-center px-4 py-3 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                 >
-                  <Home className="w-4 h-4 mr-1.5 shrink-0" />
+                  <Home className="w-3.5 h-3.5 mr-1" />
                   처음으로
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Preview Panel - Glass Card */}
-          <div className="lg:col-span-2 rounded-[2rem] border border-white/50 bg-white/15 p-6 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl flex flex-col items-center justify-center">
-            {message && (
-              <p className="text-amber-300 font-medium mb-4 animate-pulse shrink-0 select-none text-sm">
-                글자를 드래그해서 원하는 위치로 옮겨보세요!
+          {/* Right Live Drag-and-Drop Preview Panel - Modern Polaroid Frame */}
+          <div className="lg:col-span-2 rounded-[28px] border border-white/95 bg-white/90 p-6 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] backdrop-blur-xl flex flex-col items-center justify-center">
+            {message ? (
+              <p className="text-amber-800 font-bold mb-3.5 animate-pulse shrink-0 select-none text-sm bg-amber-100/80 px-4 py-1.5 rounded-full border border-amber-200/80 flex items-center gap-1.5">
+                <Move className="w-3.5 h-3.5 text-amber-600" />
+                화면 속 글자를 마우스나 손가락으로 드래그해서 원하는 위치로 옮겨보세요!
+              </p>
+            ) : (
+              <p className="text-stone-400 font-medium mb-3.5 text-xs">
+                좌측에서 '나만의 멘트'를 입력하면 사진 위에 예쁜 글씨가 나타납니다.
               </p>
             )}
 
             {baseImage ? (
-              <div 
-                ref={containerRef}
-                className="w-full relative rounded-xl overflow-hidden shadow-inner border-2 border-white/20 bg-black select-none"
-                style={{ aspectRatio: '16/9', containerType: 'size' }}
-              >
-                <img src={baseImage} alt="Print background" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
-                
-                <div className="absolute top-3 right-3 bg-white/50 backdrop-blur-md rounded-xl p-2 shadow-lg pointer-events-none z-10">
-                  <img src="/logo.png" alt="Logo" className="h-5 w-auto object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-                </div>
-
-                {message && (
-                  <div
-                    className={`absolute cursor-move group ${isDragging ? 'opacity-90' : 'hover:opacity-80'} transition-opacity z-20 whitespace-nowrap`}
-                    style={{
-                      left: `${textPos.x}%`,
-                      top: `${textPos.y}%`,
-                      transform: 'translate(-50%, -50%)',
-                      touchAction: 'none'
-                    }}
-                    onMouseDown={handleMouseDown}
-                    onTouchStart={handleMouseDown}
-                  >
-                    <div className="relative">
-                      <div className="absolute inset-[-10px] border-2 border-dashed border-white/0 group-hover:border-white/50 rounded-lg pointer-events-none transition-colors">
-                        <div className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 bg-black/50 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Move className="w-4 h-4 text-white" />
-                        </div>
-                      </div>
-                      <span 
-                        className="drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] font-bold pointer-events-none"
-                        style={{ 
-                          fontFamily: selectedFont, 
-                          fontSize: `${fontSize}cqh`,
-                          color: textColor
-                        }}
-                      >
-                        {message}
-                      </span>
-                    </div>
+              <div className="w-full p-2 sm:p-3 bg-white rounded-3xl shadow-xl shadow-stone-400/20 border border-stone-200/80">
+                <div 
+                  ref={containerRef}
+                  className="w-full relative rounded-2xl overflow-hidden bg-stone-900 select-none shadow-inner"
+                  style={{ aspectRatio: '16/9', containerType: 'size' }}
+                >
+                  <img src={baseImage} alt="Print background" className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+                  
+                  <div className="absolute top-3 right-3 bg-white/60 backdrop-blur-md rounded-xl p-1.5 shadow-md pointer-events-none z-10">
+                    <img src="/logo.png" alt="Logo" className="h-5 w-auto object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
                   </div>
-                )}
+
+                  {message && (
+                    <div
+                      className={`absolute cursor-move group ${isDragging ? 'opacity-90' : 'hover:opacity-85'} transition-opacity z-20 whitespace-nowrap`}
+                      style={{
+                        left: `${textPos.x}%`,
+                        top: `${textPos.y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        touchAction: 'none'
+                      }}
+                      onMouseDown={handleMouseDown}
+                      onTouchStart={handleMouseDown}
+                    >
+                      <div className="relative">
+                        <div className="absolute inset-[-8px] border-2 border-dashed border-amber-300/80 group-hover:border-amber-400 rounded-lg pointer-events-none transition-colors">
+                          <div className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 bg-amber-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm">
+                            <Move className="w-3.5 h-3.5 text-white" />
+                          </div>
+                        </div>
+                        <span 
+                          className="drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] font-bold pointer-events-none"
+                          style={{ 
+                            fontFamily: selectedFont, 
+                            fontSize: `${fontSize}cqh`,
+                            color: textColor
+                          }}
+                        >
+                          {message}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="text-white/50 animate-pulse">미리보기를 준비중입니다...</div>
+              <div className="text-stone-400 font-medium animate-pulse">미리보기를 준비중입니다...</div>
             )}
           </div>
         </div>
@@ -667,7 +689,7 @@ export default function PrintPage() {
     <Suspense fallback={
       <div className="relative flex min-h-screen items-center justify-center">
         <img src="/ghibli-sky.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="relative z-10 text-white font-semibold">Loading...</div>
+        <div className="relative z-10 text-stone-800 font-bold bg-white/80 px-6 py-3 rounded-full backdrop-blur-md">인쇄 스튜디오를 준비하는 중...</div>
       </div>
     }>
       <PrintContent />

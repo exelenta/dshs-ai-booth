@@ -23,23 +23,23 @@ export function StepIndicator({
             <div className="flex flex-col items-center gap-1.5">
               <span
                 className={cn(
-                  'flex h-8 w-8 items-center justify-center rounded-full border text-sm font-semibold transition-all duration-300',
+                  'flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all duration-300 shadow-sm',
                   isDone &&
-                    'border-amber-400 bg-amber-400 text-white',
+                    'border border-amber-300 bg-amber-400 text-white',
                   isActive &&
-                    'scale-110 border-primary bg-primary text-white ring-4 ring-primary/20',
+                    'scale-110 border-2 border-amber-500 bg-amber-500 text-white ring-4 ring-amber-400/20',
                   !isDone &&
                     !isActive &&
-                    'border-white/40 bg-white/20 text-white/70',
+                    'border border-stone-200 bg-white/80 text-stone-400',
                 )}
                 aria-current={isActive ? 'step' : undefined}
               >
-                {isDone ? <Check className="h-4 w-4" /> : step.id}
+                {isDone ? <Check className="h-4 w-4 stroke-[2.5]" /> : step.id}
               </span>
               <span
                 className={cn(
-                  'hidden text-xs font-medium transition-colors sm:block',
-                  isActive ? 'text-white' : 'text-white/60',
+                  'hidden text-xs font-semibold transition-colors sm:block',
+                  isActive ? 'text-amber-800' : 'text-stone-500',
                 )}
               >
                 {step.label}
@@ -48,8 +48,8 @@ export function StepIndicator({
             {i < steps.length - 1 && (
               <span
                 className={cn(
-                  'mb-5 h-0.5 w-6 rounded-full transition-colors duration-300 sm:w-12',
-                  isDone ? 'bg-amber-400' : 'bg-white/25',
+                  'mb-5 h-1 w-6 rounded-full transition-colors duration-300 sm:w-10',
+                  isDone ? 'bg-amber-400' : 'bg-stone-200',
                 )}
                 aria-hidden="true"
               />
