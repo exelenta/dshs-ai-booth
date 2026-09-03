@@ -396,26 +396,19 @@ function PromptContent() {
         className="pointer-events-none absolute inset-0 bg-gradient-to-b from-amber-500/10 via-transparent to-amber-900/20"
       />
 
-      <div className="relative z-10 w-full max-w-7xl flex flex-col" style={{ height: '92vh' }}>
-        {/* Step Badge */}
+      <div className="relative z-10 w-full max-w-7xl flex flex-col" style={{ height: '94vh' }}>
+        {/* Step Badge (Guideline 6: Removed extra badge next to it) */}
         <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="px-4 py-1.5 bg-white/90 border border-amber-200/80 rounded-full text-amber-900 font-bold text-xs backdrop-blur-md shadow-xs flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              {hasPhoto ? "3단계: 상상 스케치 설정" : "2단계: 상상 스케치 설정"}
-            </span>
-            {hasPhoto && (
-              <span className="hidden sm:inline-flex items-center px-3 py-1 bg-rose-100/90 border border-rose-200 text-rose-700 text-xs font-bold rounded-full">
-                ✨ 얼굴 사진 변신 준비 완료
-              </span>
-            )}
-          </div>
+          <span className="px-4 py-1.5 bg-white/90 border border-amber-200/80 rounded-full text-amber-900 font-bold text-xs backdrop-blur-md shadow-xs flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            {hasPhoto ? "3단계: 상상 스케치 설정" : "2단계: 상상 스케치 설정"}
+          </span>
         </div>
 
         {/* High-contrast Warm Glassmorphism Main Panel */}
-        <div className="flex-1 min-h-0 rounded-[28px] border border-white/95 bg-white/88 p-5 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] backdrop-blur-xl md:p-7 flex flex-col">
+        <div className="flex-1 min-h-0 rounded-[28px] border border-white/95 bg-white/88 p-5 shadow-[0_16px_40px_-12px_rgba(100,70,30,0.15)] backdrop-blur-xl md:p-6 flex flex-col">
           {/* Header */}
-          <div className="mb-4 shrink-0 flex items-center justify-between">
+          <div className="mb-3.5 shrink-0 flex items-center justify-between">
             <div>
               <h1 className="text-xl md:text-2xl font-extrabold text-stone-800 flex items-center">
                 <Wand2 className="w-6 h-6 mr-2 text-amber-500" />
@@ -427,21 +420,23 @@ function PromptContent() {
             </div>
           </div>
 
-          {/* Main 2-column layout */}
+          {/* Main 2-column layout (Guideline 9: Expanded left column width for spacious selectors) */}
           <div className="flex flex-col lg:flex-row gap-5 flex-1 min-h-0">
-            {/* Left Column: Visual Style Cards + Easy Selectors */}
-            <div className="flex-1 overflow-y-auto pr-1.5 space-y-3.5 warm-scrollbar">
-              {/* Visual Style Showcase with Example Photos */}
-              <div className="bg-white/90 p-4 rounded-2xl border border-amber-200/60 shadow-xs">
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-stone-800 font-bold text-sm flex items-center">
-                    <ImageIcon className="w-4 h-4 text-amber-500 mr-1.5" />
+            {/* Left Column: Spacious Visual Style Cards + Selectors (Expanded Space) */}
+            <div className="lg:flex-[1.35] overflow-y-auto pr-2 space-y-4 warm-scrollbar">
+              {/* Visual Style Showcase with Example Photos (Spacious and high visibility) */}
+              <div className="bg-white/95 p-4 md:p-5 rounded-2xl border border-amber-200/70 shadow-xs">
+                <div className="flex items-center justify-between mb-3.5">
+                  <label className="text-stone-800 font-bold text-base flex items-center">
+                    <ImageIcon className="w-5 h-5 text-amber-500 mr-2" />
                     대표 화풍 예시 (터치해서 바로 선택!)
                   </label>
-                  <span className="text-xs text-stone-400">사진을 누르면 화풍이 바뀝니다</span>
+                  <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200/60">
+                    사진 터치 시 즉시 변경
+                  </span>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {CATEGORY_DATA.medium.options.filter((opt) => opt.image).map((opt) => {
                     const isSelected = selections.medium === opt.value;
                     return (
@@ -450,13 +445,13 @@ function PromptContent() {
                         type="button"
                         onClick={() => handleSelectChange("medium", opt.value)}
                         className={cn(
-                          "group relative overflow-hidden rounded-xl border-2 transition-all cursor-pointer flex flex-col text-left",
+                          "group relative overflow-hidden rounded-2xl border-2 transition-all cursor-pointer flex flex-col text-left",
                           isSelected
-                            ? "border-amber-500 ring-2 ring-amber-400/40 scale-[1.02] shadow-md shadow-amber-500/20 bg-amber-50/50"
-                            : "border-stone-200/80 bg-white hover:border-amber-300 hover:scale-[1.01] shadow-xs"
+                            ? "border-amber-500 ring-3 ring-amber-400/40 scale-[1.02] shadow-md shadow-amber-500/20 bg-amber-50/60"
+                            : "border-stone-200/90 bg-white hover:border-amber-400/80 hover:scale-[1.01] shadow-xs"
                         )}
                       >
-                        <div className="aspect-square w-full relative overflow-hidden bg-stone-100">
+                        <div className="aspect-[4/3] sm:aspect-square w-full relative overflow-hidden bg-stone-100">
                           {opt.image && (
                             <img
                               src={opt.image}
@@ -465,12 +460,12 @@ function PromptContent() {
                             />
                           )}
                           {isSelected && (
-                            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md">
-                              <Check className="w-3.5 h-3.5 stroke-[3]" />
+                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow-md">
+                              <Check className="w-4 h-4 stroke-[3]" />
                             </div>
                           )}
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-900/85 via-stone-900/40 to-transparent p-2 pt-4">
-                            <span className="text-white font-bold text-xs block truncate drop-shadow-xs">
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-stone-900/90 via-stone-900/50 to-transparent p-2.5 pt-5">
+                            <span className="text-white font-bold text-xs md:text-sm block truncate drop-shadow-sm">
                               {opt.label}
                             </span>
                           </div>
@@ -481,21 +476,21 @@ function PromptContent() {
                 </div>
               </div>
 
-              {/* Child-friendly Detail Selectors */}
+              {/* Child-friendly Detail Selectors with Spacious Padding */}
               {(Object.keys(CATEGORY_DATA) as Array<keyof Selections>).map((key) => {
                 const cat = CATEGORY_DATA[key];
                 const selectedOpt = cat.options.find((o) => o.value === selections[key]);
                 const IconComponent = cat.icon;
 
                 return (
-                  <div key={key} className="flex flex-col bg-white/90 p-3.5 rounded-2xl border border-stone-200/70 hover:border-amber-300/80 transition-all shadow-xs">
+                  <div key={key} className="flex flex-col bg-white/95 p-4 rounded-2xl border border-stone-200/80 hover:border-amber-300/80 transition-all shadow-xs">
                     <div className="flex items-center justify-between mb-2">
-                      <label className="text-stone-800 text-sm font-bold flex items-center">
+                      <label className="text-stone-800 text-sm md:text-base font-bold flex items-center">
                         <IconComponent className="w-4 h-4 text-amber-500 mr-2 shrink-0" />
                         {cat.label}
                       </label>
                       {selectedOpt?.desc && (
-                        <span className="text-xs text-amber-700/80 truncate max-w-[200px] font-medium">
+                        <span className="text-xs text-amber-700/90 truncate max-w-[240px] font-semibold">
                           {selectedOpt.desc}
                         </span>
                       )}
@@ -505,7 +500,7 @@ function PromptContent() {
                       <select
                         value={selections[key]}
                         onChange={(e) => handleSelectChange(key, e.target.value)}
-                        className="w-full appearance-none bg-stone-50 border border-stone-200 text-stone-800 text-sm font-semibold rounded-xl px-4 py-3 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-200/50 transition-all cursor-pointer hover:border-stone-300"
+                        className="w-full appearance-none bg-stone-50 border border-stone-200 text-stone-800 text-sm md:text-base font-semibold rounded-xl px-4 py-3.5 outline-none focus:border-amber-500 focus:bg-white focus:ring-2 focus:ring-amber-200/50 transition-all cursor-pointer hover:border-stone-300"
                       >
                         {cat.options.map((opt) => (
                           <option key={opt.value} value={opt.value} className="bg-white text-stone-800 py-2">
@@ -513,80 +508,45 @@ function PromptContent() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Right Column: Warm Emotion Sketchbook Preview with Live Prompt */}
-            <div className="flex-1 flex flex-col gap-3.5">
-              {/* Active Style Visual Spotlight Card */}
-              {activeMediumItem && activeMediumItem.image && (
-                <div className="bg-gradient-to-r from-amber-50 via-orange-50/60 to-rose-50 border border-amber-200/80 rounded-2xl p-3.5 flex items-center gap-3.5 shrink-0 shadow-xs">
-                  <img
-                    src={activeMediumItem.image}
-                    alt={activeMediumItem.label}
-                    className="w-16 h-16 rounded-xl object-cover border-2 border-amber-300 shadow-sm shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold mb-1 border border-amber-200/60">
-                      선택된 화풍
-                    </div>
-                    <h3 className="text-base font-bold text-stone-800 truncate">{activeMediumItem.label}</h3>
-                    <p className="text-xs text-stone-600 truncate font-medium">{activeMediumItem.desc}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Warm Fairy Tale Magic Sketchbook Note Card */}
-              <div className="bg-gradient-to-b from-[#FFFDF9] to-[#FAF6EE] rounded-2xl p-5 flex-1 flex flex-col border border-amber-200/80 shadow-xs relative overflow-hidden">
-                <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-amber-200/50">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center">
-                      <Sparkles className="w-4 h-4 text-amber-600" />
-                    </div>
-                    <span className="text-stone-800 font-bold text-sm md:text-base">
-                      상상 마법 스케치북 미리보기
-                    </span>
-                  </div>
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100/70 text-amber-800 border border-amber-200/60">
-                    준비 완료 ✨
-                  </span>
-                </div>
-
-                {/* Emotional Guideline Header */}
-                <div className="flex items-center gap-3 mb-3 p-3 bg-amber-50/80 rounded-xl border border-amber-200/60">
+            {/* Right Column: Clean Magic Note Card with Live Prompt (Guideline 7 & 8 applied) */}
+            <div className="lg:flex-1 flex flex-col gap-3.5">
+              {/* Warm Fairy Tale Magic Note Card (Removed '선택된 화풍' & '상상 마법 스케치북 미리보기' header) */}
+              <div className="bg-gradient-to-b from-[#FFFDF9] to-[#FAF6EE] rounded-2xl p-5 md:p-6 flex-1 flex flex-col border border-amber-200/90 shadow-xs relative overflow-hidden">
+                {/* Guideline 8: Replaced header with the message styled in bold, crisp font */}
+                <div className="flex items-center gap-3 mb-4 p-3.5 bg-amber-50/90 rounded-2xl border border-amber-200/80 shadow-2xs">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-orange-400 flex items-center justify-center text-white shadow-xs shrink-0">
                     <Wand2 className="w-5 h-5 animate-pulse" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="text-sm md:text-base font-extrabold text-amber-950 font-display leading-tight">
+                    <h2 className="text-base md:text-lg font-bold text-stone-800 leading-snug">
                       가족의 따뜻한 미소를 {mediumShortName} 마법 세계로 옮기고 있어요 ✨
-                    </h3>
-                    <p className="text-xs text-amber-800/80 font-medium mt-0.5">
-                      아래 마법 주문서(프롬프트)에 맞춰 AI가 그림을 그려냅니다.
-                    </p>
+                    </h2>
                   </div>
                 </div>
 
-                {/* Prompt Display Card (Replaces option tags as requested) */}
-                <div className="flex-1 flex flex-col p-4 bg-white/95 rounded-xl border border-amber-200/80 shadow-inner overflow-hidden">
-                  <div className="flex items-center gap-1.5 mb-2 text-xs font-bold text-amber-800">
-                    <Scroll className="w-3.5 h-3.5 text-amber-600" />
+                {/* Prompt Display Card */}
+                <div className="flex-1 flex flex-col p-4 bg-white/95 rounded-2xl border border-amber-200/80 shadow-inner overflow-hidden">
+                  <div className="flex items-center gap-1.5 mb-2.5 text-xs md:text-sm font-bold text-amber-900">
+                    <Scroll className="w-4 h-4 text-amber-600" />
                     <span>완성된 마법 주문 (프롬프트)</span>
                   </div>
 
                   <div className="flex-1 overflow-y-auto pr-1 warm-scrollbar">
-                    <p className="text-stone-700 text-xs md:text-sm leading-relaxed font-medium whitespace-pre-wrap select-text bg-[#FAF8F5] p-3 rounded-lg border border-stone-200/60">
+                    <p className="text-stone-700 text-sm md:text-base leading-relaxed font-medium whitespace-pre-wrap select-text bg-[#FAF8F5] p-3.5 rounded-xl border border-stone-200/70">
                       {currentPrompt}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-3 text-center">
-                  <p className="text-[0.75rem] text-stone-400 font-medium">
+                  <p className="text-xs text-stone-400 font-medium">
                     '마법 그리기 시작' 버튼을 누르면 위 주문에 맞춰 멋진 그림이 완성됩니다.
                   </p>
                 </div>
@@ -603,7 +563,7 @@ function PromptContent() {
                 </button>
                 <button
                   onClick={handleGenerate}
-                  className="flex-1 flex items-center justify-center py-3.5 text-base md:text-lg font-bold rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
+                  className="flex-1 flex items-center justify-center py-4 text-base md:text-lg font-bold rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-md hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] cursor-pointer"
                 >
                   <Sparkles className="w-5 h-5 mr-2" />
                   이대로 마법 그리기 시작!

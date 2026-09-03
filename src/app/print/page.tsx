@@ -523,9 +523,9 @@ function PrintContent() {
               <button
                 onClick={handleDownload}
                 disabled={!baseImage}
-                className="w-full flex items-center justify-center px-4 py-3 bg-white hover:bg-amber-50 text-amber-900 border-2 border-amber-300 hover:border-amber-400 text-sm md:text-base font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-[0.99]"
+                className="w-full flex items-center justify-center px-4 py-3.5 bg-white hover:bg-amber-50 text-amber-900 border-2 border-amber-300 hover:border-amber-400 text-sm md:text-base font-bold rounded-xl transition-all shadow-xs cursor-pointer active:scale-[0.99]"
               >
-                <Download className="w-4 h-4 mr-2 text-amber-600" />
+                <Download className="w-5 h-5 mr-2 text-amber-600" />
                 내 컴퓨터에 사진 다운로드
               </button>
             </div>
@@ -560,19 +560,19 @@ function PrintContent() {
               </button>
             </div>
 
-            {/* Primary Action Button: Solid Orange/Amber Gradient */}
+            {/* Primary Action Button: Solid Orange/Amber Gradient (Guideline 11: Font and icon unified) */}
             <div className="mt-auto space-y-3">
               <button
                 onClick={handlePrint}
                 disabled={isPrinting || !baseImage}
-                className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-xl font-extrabold rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer font-display"
+                className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-base md:text-lg font-bold rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
               >
                 {isPrinting ? (
                   "인쇄 준비 중..."
                 ) : (
                   <>
-                    <Printer className="w-6 h-6 mr-2.5" />
-                    진짜 인쇄하기! 🖨️
+                    <Printer className="w-5 h-5 mr-2" />
+                    진짜 인쇄하기!
                   </>
                 )}
               </button>

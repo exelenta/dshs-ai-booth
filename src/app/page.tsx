@@ -20,6 +20,11 @@ function HomeContent() {
     }
   };
 
+  // Soft white glow text shadow style for clear readability on watercolor background
+  const whiteGlowStyle = {
+    textShadow: "0 0 10px rgba(255, 255, 255, 0.95), 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(255, 255, 255, 0.6)",
+  };
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
       {/* Soft Sky Watercolor Backdrop */}
@@ -36,17 +41,25 @@ function HomeContent() {
       />
 
       <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
-        {/* Header with warm storybook badge */}
+        {/* Header with warm storybook badge and soft black text with white glow */}
         <div className="mb-6 text-center">
-          <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/80 border border-amber-200/80 text-amber-800 text-xs font-bold shadow-sm backdrop-blur-md mb-3">
+          <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-white/90 border border-stone-200/90 text-stone-800 text-xs font-bold shadow-xs backdrop-blur-md mb-3">
             <Sparkles className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
-            <span>따뜻한 마법 스케치북</span>
+            <span style={whiteGlowStyle} className="tracking-wider">SPIRITED BOOTH · 따뜻한 마법 스케치북</span>
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)]">
+
+          <h1 
+            style={whiteGlowStyle}
+            className="text-4xl md:text-5xl font-extrabold text-[#1F2937] tracking-tight font-display"
+          >
             우리가족 상상스케치
           </h1>
-          <p className="mt-2 text-white/90 text-base md:text-lg font-medium drop-shadow-[0_1px_4px_rgba(0,0,0,0.3)]">
-            소중한 우리 가족의 얼굴과 상상을 마법 같은 그림으로 완성해요
+
+          <p 
+            style={whiteGlowStyle}
+            className="mt-2 text-[#333333] text-base md:text-lg font-bold"
+          >
+            말로 그리는 우리 가족의 꿈
           </p>
         </div>
 

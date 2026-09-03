@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, ArrowRight, Wand2, Sparkles, Image as ImageIcon } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, Wand2, Sparkles } from "lucide-react";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 
 function ResultContent() {
@@ -185,8 +185,9 @@ function ResultContent() {
               <h1 className="text-2xl md:text-3xl font-extrabold text-stone-800 mb-1 font-display">
                 짜잔! 상상 속 그림이 완성되었어요 🎉
               </h1>
+              {/* Guideline 10: Updated description text */}
               <p className="text-stone-600 text-sm md:text-base font-medium">
-                인물과 화풍, 배경이 자연스럽게 하나가 된 특별한 예술 작품입니다.
+                세상에 하나밖에 없는 당신의 특별한 사진입니다.
               </p>
             </div>
 

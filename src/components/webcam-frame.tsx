@@ -13,10 +13,14 @@ export function WebcamFrame({
   children,
   recording = false,
   className,
+  showFooter = true,
+  footerText = "✨ 예쁜 표정 짓기! ✨",
 }: {
   children: ReactNode
   recording?: boolean
   className?: string
+  showFooter?: boolean
+  footerText?: string
 }) {
   return (
     <div
@@ -52,12 +56,14 @@ export function WebcamFrame({
         <div className="aspect-[4/3] w-full">{children}</div>
       </div>
 
-      {/* Bottom Friendly Note */}
-      <div className="mt-2.5 flex items-center justify-center">
-        <span className="text-[0.75rem] font-medium text-stone-400">
-          ✨ 가족과 함께 행복한 표정을 지어보세요 ✨
-        </span>
-      </div>
+      {/* Bottom Friendly Note (Hidden on segmented captured view as per guideline 5) */}
+      {showFooter && (
+        <div className="mt-2.5 flex items-center justify-center">
+          <span className="text-xs font-bold text-stone-500">
+            {footerText}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

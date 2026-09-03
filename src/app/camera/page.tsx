@@ -164,7 +164,7 @@ function CameraContent() {
             <h1 className="text-2xl font-bold text-stone-800">
               {capturedImage ? "멋진 사진이 찍혔어요! ✨" : "가족과 함께 예쁘게 포즈를 취해보세요"}
             </h1>
-            <p className="text-stone-500 text-sm mt-1">
+            <p className="text-stone-500 text-sm mt-1 font-medium">
               {capturedImage 
                 ? "이 사진 속 인물이 선택하신 마법 화풍으로 완벽하게 다시 그려집니다"
                 : "얼굴이 잘 보이도록 화면 중앙에 위치해주세요"}
@@ -173,7 +173,11 @@ function CameraContent() {
 
           {/* Modern Polaroid Style Viewfinder */}
           <div className="mb-5">
-            <WebcamFrame recording={!capturedImage && !isProcessing}>
+            <WebcamFrame 
+              recording={!capturedImage && !isProcessing}
+              showFooter={!capturedImage}
+              footerText="✨ 예쁜 표정 짓기! ✨"
+            >
               {!capturedImage ? (
                 <>
                   <Webcam
@@ -200,7 +204,7 @@ function CameraContent() {
                   )}
                 </>
               ) : (
-                /* Pastel Magic Glow Background (Photoshop checkerboard pattern removed!) */
+                /* Pastel Magic Glow Background (Segmented Foreground View) */
                 <div className="w-full h-full relative bg-gradient-to-br from-amber-50 via-orange-50/60 to-rose-50 flex items-center justify-center">
                   <img src={capturedImage} alt="Captured" className="w-full h-full object-contain relative z-10 drop-shadow-md" />
                   <div className="absolute inset-0 bg-radial from-amber-300/10 via-transparent to-transparent pointer-events-none" />
