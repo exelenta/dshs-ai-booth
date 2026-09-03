@@ -2,12 +2,30 @@ import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { selectGenerationMode } from "@/lib/generation-mode";
 import { getErrorMessage } from "@/lib/errors";
-
-// Initialize the Google Gen AI SDK
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import {
+  getGeminiApiKey,
+  getGeminiClientOptions,
+  isGeminiConfigurationError,
+} from "@/lib/gemini-config";
 
 export async function POST(request: Request) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    console.error("GEMINI_API_KEY is not configured in the server runtime.");
+    return NextResponse.json(
+      {
+        error:
+          "이미지 생성 서비스 설정이 완료되지 않았습니다. 운영 담당자에게 알려주세요.",
+      },
+      { status: 503 },
+    );
+  }
+
   try {
+    // Firebase and other Google Cloud runtimes may define Vertex AI-related
+    // environment variables. Force the API-key based Gemini Developer API so
+    // the SDK never falls back to Application Default Credentials.
+    const ai = new GoogleGenAI(getGeminiClientOptions(apiKey));
     const { prompt, theme, userImage } = await request.json();
 
     if (!prompt) {
@@ -113,6 +131,16 @@ text, watermarks, logo, signature, malformed hands, distorted faces, low resolut
 
   } catch (error: unknown) {
     console.error("Error generating image:", error);
+    if (isGeminiConfigurationError(error)) {
+      return NextResponse.json(
+        {
+          error:
+            "이미지 생성 서비스 인증 설정에 문제가 있습니다. 운영 담당자에게 알려주세요.",
+        },
+        { status: 503 },
+      );
+    }
+
     return NextResponse.json(
       { error: getErrorMessage(error, "이미지 생성 중 오류가 발생했습니다.") },
       { status: 500 }

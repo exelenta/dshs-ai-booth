@@ -44,6 +44,8 @@ npm run dev
 
 Solapi 발신 번호는 콘솔에서 사전 등록 및 인증되어 있어야 합니다.
 
+Firebase에 배포할 때 `GEMINI_API_KEY`는 반드시 **실행 환경에도** 등록해야 합니다. 로컬의 `.env.local`은 GitHub나 Firebase에 자동으로 전달되지 않습니다. App Hosting을 사용한다면 Firebase Console의 **App Hosting → 백엔드 → 설정 → 환경**에서 Secret으로 등록하거나 `firebase apphosting:secrets:set GEMINI_API_KEY`를 사용한 뒤 새 롤아웃을 생성합니다. 기존 프레임워크 인식 Hosting을 사용한다면 배포 프로젝트용 dotenv 설정에 같은 이름으로 등록하고 다시 배포합니다. API 키를 저장소에 직접 커밋하지 마세요.
+
 ## 검사 명령
 
 ```bash

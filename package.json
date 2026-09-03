@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test src/lib/generation-mode.test.ts src/lib/phone.test.ts",
+    "test": "node --test src/lib/gemini-config.test.ts src/lib/generation-mode.test.ts src/lib/phone.test.ts",
     "check": "npm run lint && npm test && npm run build",
     "postinstall": "node scripts/copy-mediapipe-assets.mjs"
   },
