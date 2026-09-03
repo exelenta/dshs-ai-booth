@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { useRouter } from "next/navigation";
-import { Camera, RefreshCcw, ArrowRight, Loader2, ArrowLeft } from "lucide-react";
+import { Camera, RefreshCcw, ArrowRight, Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import { Suspense } from "react";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
+import { WebcamFrame } from "@/components/webcam-frame";
 
 function CameraContent() {
   useIdleTimeout();
@@ -127,121 +128,149 @@ function CameraContent() {
     router.push("/prompt");
   };
 
-
   const handleRetake = () => {
     setCapturedImage(null);
   };
 
   return (
-    <main className="min-h-screen bg-slate-900 p-6 flex flex-col items-center justify-center relative">
-      <div className="absolute top-6 left-6 z-20">
-        <span className="px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white/80 font-bold tracking-wider backdrop-blur-md">
-          2단계: 사진 촬영
-        </span>
-      </div>
-      
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 sm:p-6">
+      {/* Ghibli sky backdrop */}
+      <img
+        src="/ghibli-sky.jpg"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40"
+      />
+
       {/* Flash overlay */}
       {flash && <div className="absolute inset-0 bg-white z-50 animate-pulse" />}
 
-      <div className="w-full max-w-4xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-8 flex flex-col items-center shadow-2xl">
-        <h1 className="text-3xl font-bold text-white mb-6">
-          {capturedImage ? "멋진 사진이네요!" : "가족과 함께 예쁘게 포즈를 취해보세요"}
-        </h1>
+      <div className="relative z-10 w-full max-w-2xl flex flex-col items-center">
+        {/* Step badge */}
+        <div className="mb-5 flex items-center gap-2">
+          <span className="px-4 py-1.5 bg-white/20 border border-white/40 rounded-full text-white font-semibold text-sm backdrop-blur-md">
+            2단계: 사진 촬영
+          </span>
+        </div>
 
-        <div className="relative w-full max-w-2xl aspect-video bg-black rounded-2xl overflow-hidden shadow-inner flex items-center justify-center">
-          {!capturedImage ? (
-            <>
-              <Webcam
-                ref={webcamRef}
-                audio={false}
-                screenshotFormat="image/jpeg"
-                videoConstraints={{ facingMode: "user", width: 1280, height: 720 }}
-                className="w-full h-full object-cover transform -scale-x-100"
-              />
-              {countdown !== null && countdown > 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-                  <span className="text-9xl font-bold text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-pulse">
-                    {countdown}
-                  </span>
+        {/* Glass card */}
+        <div className="w-full rounded-[2rem] border border-white/50 bg-white/20 p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.4)] backdrop-blur-xl sm:p-6">
+          <header className="mb-5 text-center">
+            <p className="mb-1 flex items-center justify-center gap-1.5 font-mono text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-white/90">
+              <Sparkles className="h-3.5 w-3.5" />
+              Spirited Booth
+            </p>
+            <h1 className="text-xl font-bold text-white drop-shadow">
+              {capturedImage ? "멋진 사진이네요!" : "가족과 함께 예쁘게 포즈를 취해보세요"}
+            </h1>
+          </header>
+
+          {/* Camera / Preview */}
+          <div className="mb-5">
+            <WebcamFrame recording={!capturedImage && !isProcessing}>
+              {!capturedImage ? (
+                <>
+                  <Webcam
+                    ref={webcamRef}
+                    audio={false}
+                    screenshotFormat="image/jpeg"
+                    videoConstraints={{ facingMode: "user", width: 1280, height: 720 }}
+                    className="w-full h-full object-cover transform -scale-x-100"
+                  />
+                  {countdown !== null && countdown > 0 && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+                      <span className="text-8xl font-bold text-white drop-shadow-[0_0_20px_rgba(255,255,255,0.8)]">
+                        {countdown}
+                      </span>
+                    </div>
+                  )}
+                  {isProcessing && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-20 backdrop-blur-sm">
+                      <Loader2 className="w-12 h-12 text-amber-300 animate-spin mb-3" />
+                      <span className="text-base font-bold text-white text-center px-4">마법 스케치북이 인물을 오려내고 있어요...</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="w-full h-full relative bg-slate-800 checkerboard-bg">
+                  <img src={capturedImage} alt="Captured" className="w-full h-full object-contain" />
                 </div>
               )}
-              {isProcessing && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-20 backdrop-blur-sm">
-                  <Loader2 className="w-16 h-16 text-pink-400 animate-spin mb-4" />
-                  <span className="text-xl font-bold text-white">마법 스케치북이 인물을 오려내고 있어요...</span>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="w-full h-full relative bg-slate-800 checkerboard-bg">
-              {/* Checkerboard CSS pattern for transparency visual */}
-              <style jsx>{`
-                .checkerboard-bg {
-                  background-image: 
-                    linear-gradient(45deg, #334155 25%, transparent 25%), 
-                    linear-gradient(-45deg, #334155 25%, transparent 25%), 
-                    linear-gradient(45deg, transparent 75%, #334155 75%), 
-                    linear-gradient(-45deg, transparent 75%, #334155 75%);
-                  background-size: 20px 20px;
-                  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-                }
-              `}</style>
-              <img src={capturedImage} alt="Captured" className="w-full h-full object-contain" />
-            </div>
-          )}
+            </WebcamFrame>
+          </div>
 
           {/* Hidden canvas for processing */}
           <canvas ref={canvasRef} className="hidden" />
-        </div>
 
-        {error && <p className="mt-4 text-red-400 font-bold">{error}</p>}
+          {error && <p className="mb-4 text-red-300 font-medium text-sm text-center">{error}</p>}
 
-        <div className="mt-8 flex gap-4 w-full justify-center">
+          {/* Action Buttons */}
           {!capturedImage ? (
-            <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full">
+            <div className="flex gap-3">
               <button
                 onClick={() => router.push("/")}
-                className="flex items-center justify-center px-8 py-4 bg-white/5 border border-white/20 text-white text-xl font-bold rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
               >
-                <ArrowLeft className="w-6 h-6 mr-2" />
-                이전 단계
+                <ArrowLeft className="h-4 w-4" />
+                이전
               </button>
               <button
                 onClick={startCapture}
                 disabled={countdown !== null || isProcessing}
-                className="flex items-center justify-center px-12 py-5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-2xl font-bold rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_20px_rgba(236,72,153,0.4)] cursor-pointer"
+                className="flex flex-[1.4] items-center justify-center gap-2 rounded-full bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-transform hover:scale-[1.02] disabled:opacity-60"
               >
-                <Camera className="w-8 h-8 mr-3" />
+                <Camera className="h-4 w-4" />
                 촬영하기
               </button>
             </div>
           ) : (
-            <div className="flex flex-wrap gap-4 items-center justify-center">
+            <div className="flex gap-3">
               <button
                 onClick={handleRetake}
-                className="flex items-center justify-center px-6 py-4 bg-white/10 border border-white/30 text-white text-lg font-bold rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                className="flex flex-1 items-center justify-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-3 text-sm font-semibold text-white backdrop-blur transition-colors hover:bg-white/20"
               >
-                <RefreshCcw className="w-5 h-5 mr-2" />
+                <RefreshCcw className="h-4 w-4" />
                 다시 찍기
               </button>
               <button
                 onClick={handleNext}
-                className="flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xl font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_25px_rgba(59,130,246,0.5)] cursor-pointer"
+                className="flex flex-[1.4] items-center justify-center gap-2 rounded-full bg-amber-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-amber-500/30 transition-transform hover:scale-[1.02]"
               >
                 상상 기록하기
-                <ArrowRight className="w-6 h-6 ml-2" />
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           )}
         </div>
       </div>
+
+      <style>{`
+        .checkerboard-bg {
+          background-image: 
+            linear-gradient(45deg, #334155 25%, transparent 25%), 
+            linear-gradient(-45deg, #334155 25%, transparent 25%), 
+            linear-gradient(45deg, transparent 75%, #334155 75%), 
+            linear-gradient(-45deg, transparent 75%, #334155 75%);
+          background-size: 20px 20px;
+          background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+      `}</style>
     </main>
   );
 }
 
 export default function CameraPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Loading...</div>}>
+    <Suspense fallback={
+      <div className="relative flex min-h-screen items-center justify-center">
+        <img src="/ghibli-sky.jpg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="relative z-10 text-white font-semibold">Loading...</div>
+      </div>
+    }>
       <CameraContent />
     </Suspense>
   );
