@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Printer, Home, CheckCircle2, Move, ArrowLeft, Smartphone, Download } from "lucide-react";
+import { Printer, Home, CheckCircle2, Move, ArrowLeft, Smartphone, Download, Pipette } from "lucide-react";
 import { storage } from "@/lib/firebase";
 import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { composeFinalImage } from "@/lib/compose-image";
@@ -13,6 +13,17 @@ const FONTS = [
   { id: "sans", name: "단정한 고딕체", value: "sans-serif" },
   { id: "serif", name: "진지한 명조체", value: "serif" },
   { id: "cursive", name: "귀여운 손글씨", value: "cursive" },
+];
+
+const PRESET_COLORS = [
+  { name: "흰색", value: "#FFFFFF", class: "bg-white" },
+  { name: "레몬노랑", value: "#FDE047", class: "bg-yellow-300" },
+  { name: "네온연두", value: "#4ADE80", class: "bg-emerald-400" },
+  { name: "스카이블루", value: "#38BDF8", class: "bg-sky-400" },
+  { name: "로즈핑크", value: "#F472B6", class: "bg-pink-400" },
+  { name: "라벤더", value: "#C084FC", class: "bg-purple-400" },
+  { name: "오렌지", value: "#FB923C", class: "bg-orange-400" },
+  { name: "다크네이비", value: "#0F172A", class: "bg-slate-900 border border-white/40" },
 ];
 
 function PrintContent() {
@@ -38,10 +49,27 @@ function PrintContent() {
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const colorInputRef = useRef<HTMLInputElement>(null);
 
   const [textPos, setTextPos] = useState({ x: 50, y: 85 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
+
+  const handlePickColor = async () => {
+    if (typeof window !== "undefined" && "EyeDropper" in window) {
+      try {
+        const eyeDropper = new (window as any).EyeDropper();
+        const result = await eyeDropper.open();
+        if (result?.sRGBHex) {
+          setTextColor(result.sRGBHex);
+        }
+      } catch {
+        // User cancelled picker
+      }
+    } else {
+      colorInputRef.current?.click();
+    }
+  };
 
   useEffect(() => {
     const imgStr = sessionStorage.getItem("finalImage");
@@ -131,8 +159,28 @@ function PrintContent() {
     const storageRef = ref(storage, `prints/${fileName}`);
 
     const uploadPromise = (async () => {
-      await uploadString(storageRef, imageData, "data_url");
-      return getDownloadURL(storageRef);
+      try {
+        await uploadString(storageRef, imageData, "data_url");
+        return await getDownloadURL(storageRef);
+      } catch (err: any) {
+        console.error("Firebase uploadString detailed error:", err);
+        if (err?.code === "storage/unauthorized") {
+          throw new Error(
+            "Firebase Storage 접근 권한(403)이 없습니다. Firebase 콘솔 > Storage > Rules(규칙)에서 /prints 경로의 읽기/쓰기 권한(allow read, write: if true;)을 허용해 주세요."
+          );
+        } else if (err?.code === "storage/unknown" || err?.code === "storage/bucket-not-found") {
+          throw new Error(
+            "Firebase Storage 버킷을 찾을 수 없거나 아직 생성되지 않았습니다. Firebase 콘솔에서 Storage 메뉴의 [시작하기]를 눌러 버킷을 생성했는지와 .env.local의 버킷명을 확인해 주세요."
+          );
+        } else if (err?.code === "storage/retry-limit-exceeded") {
+          throw new Error(
+            "Firebase Storage 서버 연결 재시도 한도 초과. Storage 버킷 상태나 보안 규칙, 네트워크를 확인해 주세요."
+          );
+        }
+        throw new Error(
+          err?.message || "Firebase Storage 업로드 중 오류가 발생했습니다."
+        );
+      }
     })();
 
     const timeoutPromise = new Promise<string>((_, reject) =>
@@ -140,7 +188,7 @@ function PrintContent() {
         () =>
           reject(
             new Error(
-              "Firebase Storage 이미지 업로드 시간 초과 (15초). Storage 규칙(Rules)이나 네트워크를 확인해 주세요."
+              "Firebase Storage 이미지 업로드 시간 초과 (15초). Firebase 콘솔의 Storage 활성화 상태 및 보안 규칙(Rules)을 확인해 주세요."
             )
           ),
         15000
@@ -219,10 +267,10 @@ function PrintContent() {
       const generatedFinalImage = await generateComposedImage();
       const imageUrl = await uploadComposedImage(generatedFinalImage);
 
-      const res = await fetch("/api/send-photo", {
+      const res = await fetch("/api/send-sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phoneNumber, imageUrl }),
+        body: JSON.stringify({ phoneNumber, photoUrl: imageUrl }),
         signal: controller.signal,
       });
 
@@ -350,25 +398,59 @@ function PrintContent() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-slate-300 mb-2 font-medium">글자 색상</label>
-              <div className="flex gap-4">
-                {[
-                  { name: '흰색', value: 'white', class: 'bg-white' },
-                  { name: '노랑', value: '#FDE047', class: 'bg-yellow-300' },
-                  { name: '하늘색', value: '#7DD3FC', class: 'bg-sky-300' },
-                ].map(color => (
-                  <button
-                    key={color.value}
-                    onClick={() => setTextColor(color.value)}
-                    className={`w-10 h-10 rounded-full border-4 transition-transform shadow-md cursor-pointer ${color.class} ${textColor === color.value ? 'border-pink-500 scale-110' : 'border-transparent hover:scale-105'}`}
-                    title={color.name}
-                  />
-                ))}
-              </div>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-slate-300 font-medium">글자 색상</label>
+              <button
+                type="button"
+                onClick={handlePickColor}
+                className="flex items-center px-3 py-1.5 bg-white/10 hover:bg-white/20 text-cyan-300 border border-cyan-400/40 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                title="사진 속 원하는 색상을 스포이드로 직접 찍어보세요"
+              >
+                <Pipette className="w-3.5 h-3.5 mr-1 text-cyan-400" />
+                스포이드로 색상 추출
+              </button>
             </div>
 
+            <div className="flex flex-wrap items-center gap-2 p-3 bg-white/5 border border-white/10 rounded-2xl">
+              {PRESET_COLORS.map((color) => (
+                <button
+                  key={color.value}
+                  type="button"
+                  onClick={() => setTextColor(color.value)}
+                  className={`w-7 h-7 rounded-full border-2 transition-all shadow-md cursor-pointer ${color.class} ${
+                    textColor.toLowerCase() === color.value.toLowerCase()
+                      ? "border-pink-500 scale-125 ring-2 ring-pink-400/60"
+                      : "border-transparent hover:scale-110"
+                  }`}
+                  title={color.name}
+                />
+              ))}
+
+              {/* Custom Color Wheel Picker */}
+              <div className="relative flex items-center ml-auto">
+                <input
+                  ref={colorInputRef}
+                  type="color"
+                  value={textColor.startsWith("#") ? textColor : "#FFFFFF"}
+                  onChange={(e) => setTextColor(e.target.value)}
+                  className="w-7 h-7 rounded-full cursor-pointer opacity-0 absolute inset-0 z-10"
+                  title="직접 색상 선택"
+                />
+                <div
+                  className="w-7 h-7 rounded-full border border-white/40 flex items-center justify-center cursor-pointer shadow-md hover:scale-110 transition-transform"
+                  style={{ background: textColor }}
+                  title={`현재 색상: ${textColor} (클릭하여 직접 선택)`}
+                >
+                  <span className="text-[10px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                    +
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-slate-300 mb-2 font-medium">글꼴 선택</label>
               <select
@@ -384,22 +466,25 @@ function PrintContent() {
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="mb-6">
-            <label className="block text-slate-300 mb-2 font-medium">글자 크기 조절</label>
-            <input 
-              type="range" 
-              min="2" 
-              max="15" 
-              step="0.5"
-              value={fontSize} 
-              onChange={(e) => setFontSize(Number(e.target.value))} 
-              className="w-full accent-cyan-400 cursor-pointer"
-            />
+            <div>
+              <label className="block text-slate-300 mb-2 font-medium">글자 크기 조절</label>
+              <div className="h-[42px] flex items-center">
+                <input 
+                  type="range" 
+                  min="2" 
+                  max="15" 
+                  step="0.5"
+                  value={fontSize} 
+                  onChange={(e) => setFontSize(Number(e.target.value))} 
+                  className="w-full accent-cyan-400 cursor-pointer"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Direct Computer Download Button */}
+
           <div className="mb-6">
             <button
               onClick={handleDownload}

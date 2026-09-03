@@ -2,17 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Camera, RefreshCcw, ArrowRight, Loader2 } from "lucide-react";
-
+import { useRouter } from "next/navigation";
+import { Camera, RefreshCcw, ArrowRight, Loader2, ArrowLeft } from "lucide-react";
 import { Suspense } from "react";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 
 function CameraContent() {
   useIdleTimeout();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const theme = searchParams.get("theme");
 
   const webcamRef = useRef<Webcam>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -89,6 +86,10 @@ function CameraContent() {
         ctx.save();
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         
+        // Horizontal flip so the captured output matches what user saw in mirror preview
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+
         // Draw original image
         ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
         
@@ -97,7 +98,6 @@ function CameraContent() {
         ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
         
         // Restore to default composite operation
-        ctx.globalCompositeOperation = "source-over";
         ctx.restore();
 
         // Get final masked image
@@ -121,10 +121,12 @@ function CameraContent() {
 
   const handleNext = () => {
     if (!capturedImage) {
-      sessionStorage.removeItem("capturedImage");
+      setError("먼저 사진을 촬영해 주세요.");
+      return;
     }
-    router.push(`/prompt?theme=${theme || 'space'}`);
+    router.push("/prompt");
   };
+
 
   const handleRetake = () => {
     setCapturedImage(null);
@@ -198,45 +200,38 @@ function CameraContent() {
           {!capturedImage ? (
             <div className="flex flex-col sm:flex-row gap-4 items-center justify-center w-full">
               <button
-                onClick={() => router.push(theme ? `/?theme=${theme}` : '/')}
-                className="flex items-center justify-center px-8 py-4 bg-white/5 border border-white/20 text-white text-xl font-bold rounded-full hover:bg-white/10 transition-colors"
+                onClick={() => router.push("/")}
+                className="flex items-center justify-center px-8 py-4 bg-white/5 border border-white/20 text-white text-xl font-bold rounded-full hover:bg-white/10 transition-colors cursor-pointer"
               >
+                <ArrowLeft className="w-6 h-6 mr-2" />
                 이전 단계
               </button>
               <button
                 onClick={startCapture}
                 disabled={countdown !== null || isProcessing}
-                className="flex items-center justify-center px-10 py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-2xl font-bold rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_20px_rgba(236,72,153,0.4)]"
+                className="flex items-center justify-center px-12 py-5 bg-gradient-to-r from-pink-500 to-purple-600 text-white text-2xl font-bold rounded-full hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100 shadow-[0_0_20px_rgba(236,72,153,0.4)] cursor-pointer"
               >
                 <Camera className="w-8 h-8 mr-3" />
                 촬영하기
               </button>
-              <button
-                onClick={handleNext}
-                disabled={countdown !== null || isProcessing}
-                className="flex items-center justify-center px-8 py-4 bg-white/10 border border-white/30 text-white text-xl font-bold rounded-full hover:bg-white/20 transition-colors disabled:opacity-50"
-              >
-                사진 찍지 않고 넘어가기
-                <ArrowRight className="w-6 h-6 ml-2" />
-              </button>
             </div>
           ) : (
-            <>
+            <div className="flex flex-wrap gap-4 items-center justify-center">
               <button
                 onClick={handleRetake}
-                className="flex items-center justify-center px-8 py-4 bg-white/10 border border-white/30 text-white text-xl font-bold rounded-full hover:bg-white/20 transition-colors"
+                className="flex items-center justify-center px-6 py-4 bg-white/10 border border-white/30 text-white text-lg font-bold rounded-full hover:bg-white/20 transition-colors cursor-pointer"
               >
-                <RefreshCcw className="w-6 h-6 mr-2" />
+                <RefreshCcw className="w-5 h-5 mr-2" />
                 다시 찍기
               </button>
               <button
                 onClick={handleNext}
-                className="flex items-center justify-center px-8 py-4 bg-white text-purple-900 text-xl font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_20px_rgba(255,255,255,0.4)]"
+                className="flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xl font-bold rounded-full hover:scale-105 transition-transform shadow-[0_0_25px_rgba(59,130,246,0.5)] cursor-pointer"
               >
                 상상 기록하기
                 <ArrowRight className="w-6 h-6 ml-2" />
               </button>
-            </>
+            </div>
           )}
         </div>
       </div>

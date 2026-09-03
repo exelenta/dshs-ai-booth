@@ -10,7 +10,7 @@ export async function POST(request: Request) {
 
     if (!rawPhone || !photoUrl) {
       return NextResponse.json(
-        { error: "전화번호와 이미지 URL이 필요합니다." },
+        { error: "수신자 전화번호(phoneNumber)와 이미지 URL(photoUrl)이 필요합니다." },
         { status: 400 }
       );
     }
@@ -53,12 +53,11 @@ export async function POST(request: Request) {
       data: response,
     });
   } catch (error: any) {
-    console.error("Error sending photo SMS via Solapi:", error);
-    const message =
+    console.error("Solapi SMS error:", error);
+    const errorMessage =
       error?.message ||
       error?.errorMessage ||
       "문자 발송 중 오류가 발생했습니다.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-

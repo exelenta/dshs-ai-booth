@@ -16,4 +16,8 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+// Set retry timeout to 5s so upload failures reject fast instead of hanging for 10 minutes
+storage.maxUploadRetryTime = 5000;
+storage.maxOperationRetryTime = 5000;
 export default app;
+
