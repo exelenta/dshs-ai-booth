@@ -2,10 +2,14 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Sparkles, Wand2, ChevronDown, ArrowLeft, Check, Image as ImageIcon, Heart, Palette, Compass, SunMedium, Scroll } from "lucide-react";
+import { Sparkles, Wand2, ChevronDown, ArrowLeft, Check, Image as ImageIcon, Heart, Palette, Compass, SunMedium, Scroll, type LucideIcon } from "lucide-react";
 import { Suspense } from "react";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 import { cn } from "@/lib/utils";
+import {
+  getSessionImage,
+  removeSessionImage,
+} from "@/lib/session-image-store";
 
 type OptionItem = {
   label: string;
@@ -14,7 +18,7 @@ type OptionItem = {
   desc?: string;
 };
 
-const CATEGORY_DATA: Record<string, { label: string; placeholder: string; icon: any; options: OptionItem[] }> = {
+const CATEGORY_DATA: Record<string, { label: string; placeholder: string; icon: LucideIcon; options: OptionItem[] }> = {
   medium: {
     label: "화풍 및 스타일 (어떤 느낌으로 그릴까요?)",
     placeholder: "화풍 선택하기",
@@ -342,9 +346,15 @@ function PromptContent() {
   const [selections, setSelections] = useState<Selections>(initialSelections);
 
   useEffect(() => {
-    const photo = sessionStorage.getItem("capturedImage");
-    const photoExists = !!photo;
-    setHasPhoto(photoExists);
+    let active = true;
+
+    void getSessionImage("capturedImage").then((photo) => {
+      if (active) setHasPhoto(Boolean(photo));
+    });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleSelectChange = (category: keyof Selections, fullValue: string) => {
@@ -357,16 +367,19 @@ function PromptContent() {
     return buildInternalPrompt(selections, hasPhoto);
   }, [selections, hasPhoto]);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     sessionStorage.setItem("userPrompt", currentPrompt);
     sessionStorage.setItem("userTheme", "fantasy");
-    sessionStorage.removeItem("bgImage");
+    await Promise.all([
+      removeSessionImage("bgImage"),
+      removeSessionImage("finalImage"),
+    ]);
 
     router.push("/result");
   };
 
-  const handlePrev = () => {
-    const hasCapturedImage = !!sessionStorage.getItem("capturedImage");
+  const handlePrev = async () => {
+    const hasCapturedImage = Boolean(await getSessionImage("capturedImage"));
     if (hasCapturedImage) {
       router.push("/camera");
     } else {
@@ -547,7 +560,7 @@ function PromptContent() {
 
                 <div className="mt-3 text-center">
                   <p className="text-xs text-stone-400 font-medium">
-                    '마법 그리기 시작' 버튼을 누르면 위 주문에 맞춰 멋진 그림이 완성됩니다.
+                    ‘마법 그리기 시작’ 버튼을 누르면 위 주문에 맞춰 멋진 그림이 완성됩니다.
                   </p>
                 </div>
               </div>

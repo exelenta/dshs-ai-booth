@@ -8,6 +8,11 @@ import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { composeFinalImage } from "@/lib/compose-image";
 import { isValidKoreanPhoneInput } from "@/lib/phone";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  clearSessionImages,
+  getSessionImage,
+} from "@/lib/session-image-store";
 
 const FONTS = [
   { id: "sans", name: "단정한 고딕체", value: "sans-serif" },
@@ -25,6 +30,10 @@ const PRESET_COLORS = [
   { name: "오렌지", value: "#FB923C", class: "bg-orange-400" },
   { name: "다크네이비", value: "#0F172A", class: "bg-slate-900 border border-stone-400" },
 ];
+
+type EyeDropperConstructor = new () => {
+  open: () => Promise<{ sRGBHex: string }>;
+};
 
 function PrintContent() {
   useIdleTimeout();
@@ -46,19 +55,25 @@ function PrintContent() {
   const [sendError, setSendError] = useState<string | null>(null);
   const [sendSuccess, setSendSuccess] = useState(false);
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
   
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textElementRef = useRef<HTMLDivElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const printCompletedRef = useRef(false);
 
   const [textPos, setTextPos] = useState({ x: 50, y: 85 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
 
   const handlePickColor = async () => {
-    if (typeof window !== "undefined" && "EyeDropper" in window) {
+    const EyeDropper = (
+      window as typeof window & { EyeDropper?: EyeDropperConstructor }
+    ).EyeDropper;
+    if (EyeDropper) {
       try {
-        const eyeDropper = new (window as any).EyeDropper();
+        const eyeDropper = new EyeDropper();
         const result = await eyeDropper.open();
         if (result?.sRGBHex) {
           setTextColor(result.sRGBHex);
@@ -72,12 +87,20 @@ function PrintContent() {
   };
 
   useEffect(() => {
-    const imgStr = sessionStorage.getItem("finalImage");
-    if (!imgStr) {
-      router.push("/");
-      return;
-    }
-    setBaseImage(imgStr);
+    let active = true;
+
+    void getSessionImage("finalImage").then((imgStr) => {
+      if (!active) return;
+      if (!imgStr) {
+        router.push("/");
+        return;
+      }
+      setBaseImage(imgStr);
+    });
+
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   const handleMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
@@ -109,10 +132,22 @@ function PrintContent() {
       
       const dxPercent = (dx / rect.width) * 100;
       const dyPercent = (dy / rect.height) * 100;
-      
+
+      if ("touches" in e) e.preventDefault();
+
+      const textRect = textElementRef.current?.getBoundingClientRect();
+      const halfWidthPercent = textRect
+        ? Math.min(48, (textRect.width / rect.width) * 50)
+        : 0;
+      const halfHeightPercent = textRect
+        ? Math.min(48, (textRect.height / rect.height) * 50)
+        : 0;
+      const nextX = dragStartRef.current.posX + dxPercent;
+      const nextY = dragStartRef.current.posY + dyPercent;
+
       setTextPos({
-        x: dragStartRef.current.posX + dxPercent,
-        y: dragStartRef.current.posY + dyPercent
+        x: Math.min(100 - halfWidthPercent, Math.max(halfWidthPercent, nextX)),
+        y: Math.min(100 - halfHeightPercent, Math.max(halfHeightPercent, nextY)),
       });
     };
 
@@ -156,30 +191,41 @@ function PrintContent() {
       );
     }
     const fileName = `booth_${Date.now()}_guest.jpg`;
-    const storageRef = ref(storage, `prints/${fileName}`);
+    const datePath = new Date().toISOString().slice(0, 10);
+    const randomSuffix = crypto.randomUUID();
+    const storageRef = ref(storage, `prints/${datePath}/${randomSuffix}_${fileName}`);
+    const deleteAfter = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     const uploadPromise = (async () => {
       try {
-        await uploadString(storageRef, imageData, "data_url");
+        await uploadString(storageRef, imageData, "data_url", {
+          contentType: "image/jpeg",
+          customMetadata: {
+            deleteAfter: deleteAfter.toISOString(),
+            retentionPolicy: "7-days",
+          },
+        });
         return await getDownloadURL(storageRef);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Firebase uploadString detailed error:", err);
-        if (err?.code === "storage/unauthorized") {
+        const code =
+          typeof err === "object" && err !== null && "code" in err
+            ? String((err as { code?: unknown }).code)
+            : "";
+        if (code === "storage/unauthorized") {
           throw new Error(
-            "Firebase Storage 접근 권한(403)이 없습니다. Firebase 콘솔 > Storage > Rules(규칙)에서 /prints 경로의 읽기/쓰기 권한(allow read, write: if true;)을 허용해 주세요."
+            "Firebase Storage 접근 권한이 없습니다. 배포된 storage.rules를 확인해 주세요."
           );
-        } else if (err?.code === "storage/unknown" || err?.code === "storage/bucket-not-found") {
+        } else if (code === "storage/unknown" || code === "storage/bucket-not-found") {
           throw new Error(
             "Firebase Storage 버킷을 찾을 수 없거나 아직 생성되지 않았습니다. Firebase 콘솔에서 Storage 메뉴의 [시작하기]를 눌러 버킷을 생성했는지와 .env.local의 버킷명을 확인해 주세요."
           );
-        } else if (err?.code === "storage/retry-limit-exceeded") {
+        } else if (code === "storage/retry-limit-exceeded") {
           throw new Error(
             "Firebase Storage 서버 연결 재시도 한도 초과. Storage 버킷 상태나 보안 규칙, 네트워크를 확인해 주세요."
           );
         }
-        throw new Error(
-          err?.message || "Firebase Storage 업로드 중 오류가 발생했습니다."
-        );
+        throw new Error(getErrorMessage(err, "Firebase Storage 업로드 중 오류가 발생했습니다."));
       }
     })();
 
@@ -200,6 +246,10 @@ function PrintContent() {
 
   const handlePrint = async () => {
     if (!baseImage) return;
+    if (!privacyAccepted) {
+      setPrintError("클라우드 백업 및 개인정보 안내에 동의해 주세요.");
+      return;
+    }
     setIsPrinting(true);
     setPrintError(null);
     setUploadWarning(null);
@@ -208,19 +258,23 @@ function PrintContent() {
       const generatedFinalImage = await generateComposedImage();
       setFinalImage(generatedFinalImage);
 
-      // Async background upload to Firebase Storage (non-blocking for print)
-      try {
-        await uploadComposedImage(generatedFinalImage);
-      } catch (e) {
-        console.error("Firebase upload failed", e);
-        setUploadWarning("클라우드 백업에 실패했지만 인쇄는 계속 진행됩니다.");
-      }
+      // Start backup without delaying the browser print dialog.
+      setUploadWarning("클라우드에 백업하는 중입니다. 인쇄는 바로 진행됩니다.");
+      void uploadComposedImage(generatedFinalImage)
+        .then(() => setUploadWarning(null))
+        .catch((error) => {
+          console.error("Firebase upload failed", error);
+          setUploadWarning("클라우드 백업에 실패했지만 인쇄는 계속 진행됩니다.");
+        });
 
       const completePrint = () => {
+        if (printCompletedRef.current) return;
+        printCompletedRef.current = true;
         setIsPrinting(false);
         setIsDone(true);
         setTimeout(() => {
           sessionStorage.clear();
+          void clearSessionImages();
           router.push("/");
         }, 10000);
       };
@@ -249,6 +303,10 @@ function PrintContent() {
 
   const handleSendPhoto = async () => {
     if (!baseImage || !phoneNumber) return;
+    if (!privacyAccepted) {
+      setSendError("사진 저장 및 문자 전송 안내에 동의해 주세요.");
+      return;
+    }
     if (!isValidKoreanPhoneInput(phoneNumber)) {
       setSendError("올바른 휴대폰 번호를 입력해 주세요. (예: 010-1234-5678)");
       return;
@@ -278,13 +336,13 @@ function PrintContent() {
       if (!res.ok) throw new Error(data.error || "문자 발송에 실패했습니다.");
 
       setSendSuccess(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       clearTimeout(abortTimeout);
       console.error(err);
       const msg =
-        err.name === "AbortError"
+        err instanceof DOMException && err.name === "AbortError"
           ? "문자 발송 서버 요청 시간이 초과되었습니다 (20초)."
-          : err.message || "문자 발송 중 오류가 발생했습니다.";
+          : getErrorMessage(err, "문자 발송 중 오류가 발생했습니다.");
       setSendError(msg);
     } finally {
       setIsSending(false);
@@ -334,6 +392,7 @@ function PrintContent() {
           <button
             onClick={() => {
               sessionStorage.clear();
+              void clearSessionImages();
               router.push("/");
             }}
             className="flex items-center px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold text-base rounded-2xl transition-all shadow-md hover:shadow-lg cursor-pointer hover:scale-[1.01]"
@@ -422,13 +481,17 @@ function PrintContent() {
             {/* Message Input - 1.5x Padding & Clean Light Gray Border */}
             <div className="mb-4">
               <label className="block text-stone-700 mb-1.5 font-bold text-sm">나만의 멘트 넣기 (선택)</label>
-              <input 
-                type="text"
+              <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="예: 2026 우리 가족 사랑해!"
-                className="w-full bg-white border border-stone-200 rounded-xl py-3.5 px-4 text-stone-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 placeholder-stone-400 text-sm md:text-base font-medium transition-all shadow-xs"
+                maxLength={80}
+                rows={2}
+                className="w-full resize-none bg-white border border-stone-200 rounded-xl py-3.5 px-4 text-stone-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 placeholder-stone-400 text-sm md:text-base font-medium transition-all shadow-xs"
               />
+              <p className="mt-1 text-right text-[11px] font-medium text-stone-400">
+                {message.length}/80자 · 최대 3줄로 자동 정리됩니다.
+              </p>
             </div>
 
             {/* Text Color Picker */}
@@ -530,6 +593,26 @@ function PrintContent() {
               </button>
             </div>
 
+            <label className="mb-3 flex items-start gap-2.5 rounded-2xl border border-sky-200 bg-sky-50/90 p-3.5 text-xs leading-relaxed text-stone-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={privacyAccepted}
+                onChange={(event) => {
+                  setPrivacyAccepted(event.target.checked);
+                  setPrintError(null);
+                  setSendError(null);
+                }}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-sky-500"
+              />
+              <span>
+                <strong className="text-stone-900">사진 저장 및 전송 안내에 동의합니다.</strong>
+                <br />
+                인쇄·문자 전송 시 완성 사진은 재출력을 위해 Firebase Storage에
+                최대 7일간 보관됩니다. 번호는 Solapi 발송에만 전달되고 앱 DB에는
+                저장되지 않습니다.
+              </span>
+            </label>
+
             {/* Secondary Action 2: SMS Section (Outline/Soft Warm Style) */}
             <div className="mb-5 p-3.5 bg-white border border-stone-200 rounded-2xl shadow-xs">
               <label className="block text-stone-700 mb-1.5 font-bold text-xs">휴대폰 번호로 사진 받기 (선택)</label>
@@ -546,7 +629,7 @@ function PrintContent() {
               />
               <button
                 onClick={handleSendPhoto}
-                disabled={isSending || !isPhoneValid || !baseImage}
+                disabled={isSending || !isPhoneValid || !baseImage || !privacyAccepted}
                 className="w-full flex items-center justify-center px-4 py-2.5 bg-white hover:bg-amber-50 text-amber-900 border-2 border-amber-300 hover:border-amber-400 text-sm font-bold rounded-xl transition-all disabled:opacity-40 disabled:hover:bg-white cursor-pointer"
               >
                 {isSending ? (
@@ -564,7 +647,7 @@ function PrintContent() {
             <div className="mt-auto space-y-3">
               <button
                 onClick={handlePrint}
-                disabled={isPrinting || !baseImage}
+                disabled={isPrinting || !baseImage || !privacyAccepted}
                 className="w-full flex items-center justify-center px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-base md:text-lg font-bold rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 cursor-pointer"
               >
                 {isPrinting ? (
@@ -606,7 +689,7 @@ function PrintContent() {
               </p>
             ) : (
               <p className="text-stone-400 font-medium mb-3.5 text-xs">
-                좌측에서 '나만의 멘트'를 입력하면 사진 위에 예쁜 글씨가 나타납니다.
+                좌측에서 ‘나만의 멘트’를 입력하면 사진 위에 예쁜 글씨가 나타납니다.
               </p>
             )}
 
@@ -625,12 +708,17 @@ function PrintContent() {
 
                   {message && (
                     <div
+                      ref={textElementRef}
                       className={`absolute cursor-move group ${isDragging ? 'opacity-90' : 'hover:opacity-85'} transition-opacity z-20 whitespace-nowrap`}
                       style={{
                         left: `${textPos.x}%`,
                         top: `${textPos.y}%`,
                         transform: 'translate(-50%, -50%)',
-                        touchAction: 'none'
+                        touchAction: 'none',
+                        maxWidth: '86%',
+                        whiteSpace: 'pre-wrap',
+                        textAlign: 'center',
+                        overflowWrap: 'anywhere'
                       }}
                       onMouseDown={handleMouseDown}
                       onTouchStart={handleMouseDown}
@@ -646,7 +734,8 @@ function PrintContent() {
                           style={{ 
                             fontFamily: selectedFont, 
                             fontSize: `${fontSize}cqh`,
-                            color: textColor
+                            color: textColor,
+                            lineHeight: 1.2
                           }}
                         >
                           {message}

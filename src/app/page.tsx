@@ -3,19 +3,24 @@
 import { useRouter } from "next/navigation";
 import { Sparkles, Camera, Palette, ArrowRight, Wand2 } from "lucide-react";
 import { Suspense, useState } from "react";
+import { clearSessionImages } from "@/lib/session-image-store";
 
 function HomeContent() {
   const router = useRouter();
   const [selectedMode, setSelectedMode] = useState<"camera" | "pure" | null>(null);
+  const [privacyNoticeAccepted, setPrivacyNoticeAccepted] = useState(false);
 
-  const handleSelectMode = (mode: "camera" | "pure") => {
+  const handleSelectMode = async (mode: "camera" | "pure") => {
+    if (!privacyNoticeAccepted) return;
     setSelectedMode(mode);
+    await clearSessionImages();
+    sessionStorage.clear();
     sessionStorage.setItem("userTheme", "fantasy");
+    sessionStorage.setItem("privacyNoticeAcceptedAt", new Date().toISOString());
 
     if (mode === "camera") {
       router.push("/camera");
     } else {
-      sessionStorage.removeItem("capturedImage");
       router.push("/prompt");
     }
   };
@@ -70,14 +75,31 @@ function HomeContent() {
             어떤 마법으로 그림을 시작할까요?
           </h2>
 
+          <label className="mb-6 flex items-start gap-3 rounded-2xl border border-sky-200 bg-sky-50/90 p-4 text-sm leading-relaxed text-stone-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={privacyNoticeAccepted}
+              onChange={(event) => setPrivacyNoticeAccepted(event.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-sky-500"
+            />
+            <span>
+              <strong className="text-stone-900">AI 처리 안내를 확인했습니다.</strong>
+              <br />
+              입력 문장과 선택한 경우의 촬영 사진은 그림 생성을 위해 Google
+              Gemini로 전송됩니다. 촬영 원본과 중간 이미지는 이 기기에 임시
+              저장되며, 2분간 조작이 없으면 자동 삭제됩니다.
+            </span>
+          </label>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Option 1: Webcam Photo Synthesis */}
             <button
               onClick={() => handleSelectMode("camera")}
+              disabled={!privacyNoticeAccepted}
               className={`relative overflow-hidden group flex flex-col items-center p-7 rounded-3xl border-2 text-center transition-all duration-300 cursor-pointer ${
                 selectedMode === "camera"
                   ? "border-amber-400 bg-amber-50/90 scale-[1.02] shadow-[0_8px_24px_rgba(245,158,11,0.2)]"
-                  : "border-amber-100 bg-white/85 hover:bg-white hover:border-amber-400/80 hover:scale-[1.02] shadow-sm hover:shadow-md"
+                  : "border-amber-100 bg-white/85 hover:bg-white hover:border-amber-400/80 hover:scale-[1.02] shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               }`}
             >
               {/* Pastel Pill Badge */}
@@ -108,10 +130,11 @@ function HomeContent() {
             {/* Option 2: Pure Imagination Art */}
             <button
               onClick={() => handleSelectMode("pure")}
+              disabled={!privacyNoticeAccepted}
               className={`relative overflow-hidden group flex flex-col items-center p-7 rounded-3xl border-2 text-center transition-all duration-300 cursor-pointer ${
                 selectedMode === "pure"
                   ? "border-sky-400 bg-sky-50/90 scale-[1.02] shadow-[0_8px_24px_rgba(56,189,248,0.2)]"
-                  : "border-stone-200/80 bg-white/85 hover:bg-white hover:border-sky-400/80 hover:scale-[1.02] shadow-sm hover:shadow-md"
+                  : "border-stone-200/80 bg-white/85 hover:bg-white hover:border-sky-400/80 hover:scale-[1.02] shadow-sm hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
               }`}
             >
               {/* Pastel Pill Badge */}

@@ -16,6 +16,55 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number,
+): string[] {
+  const characters = Array.from(text.trim());
+  const lines: string[] = [];
+  let currentLine = "";
+  let truncated = false;
+
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index];
+
+    if (character === "\n") {
+      lines.push(currentLine.trim());
+      currentLine = "";
+    } else {
+      const candidate = currentLine + character;
+      if (currentLine && ctx.measureText(candidate).width > maxWidth) {
+        lines.push(currentLine.trim());
+        currentLine = character.trimStart();
+      } else {
+        currentLine = candidate;
+      }
+    }
+
+    if (lines.length >= maxLines) {
+      truncated = index < characters.length - 1 || Boolean(currentLine);
+      break;
+    }
+  }
+
+  if (lines.length < maxLines && currentLine.trim()) {
+    lines.push(currentLine.trim());
+  }
+
+  const visibleLines = lines.slice(0, maxLines);
+  if (truncated && visibleLines.length) {
+    let lastLine = visibleLines[visibleLines.length - 1].replace(/…$/, "");
+    while (lastLine && ctx.measureText(`${lastLine}…`).width > maxWidth) {
+      lastLine = lastLine.slice(0, -1);
+    }
+    visibleLines[visibleLines.length - 1] = `${lastLine.trimEnd()}…`;
+  }
+
+  return visibleLines;
+}
+
 function drawRoundedLogoBox(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
@@ -71,7 +120,8 @@ export async function composeFinalImage(
 
   if (message) {
     ctx.fillStyle = textColor;
-    ctx.font = `bold ${Math.floor(canvas.height * (fontSize / 100))}px ${selectedFont}`;
+    const fontSizePx = Math.floor(canvas.height * (fontSize / 100));
+    ctx.font = `bold ${fontSizePx}px ${selectedFont}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.shadowColor = "rgba(0,0,0,0.8)";
@@ -79,9 +129,33 @@ export async function composeFinalImage(
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 4;
 
-    const textX = (canvas.width * textPos.x) / 100;
-    const textY = (canvas.height * textPos.y) / 100;
-    ctx.fillText(message, textX, textY);
+    const maxTextWidth = canvas.width * 0.86;
+    const lines = wrapText(ctx, message, maxTextWidth, 3);
+    const lineHeight = fontSizePx * 1.2;
+    const widestLine = Math.max(
+      fontSizePx,
+      ...lines.map((line) => ctx.measureText(line).width),
+    );
+    const halfTextWidth = widestLine / 2;
+    const horizontalMargin = canvas.width * 0.02;
+    const requestedX = (canvas.width * textPos.x) / 100;
+    const textX = Math.min(
+      canvas.width - horizontalMargin - halfTextWidth,
+      Math.max(horizontalMargin + halfTextWidth, requestedX),
+    );
+
+    const verticalMargin = canvas.height * 0.03 + fontSizePx / 2;
+    const requestedCenterY = (canvas.height * textPos.y) / 100;
+    const halfBlockHeight = ((lines.length - 1) * lineHeight) / 2;
+    const centerY = Math.min(
+      canvas.height - verticalMargin - halfBlockHeight,
+      Math.max(verticalMargin + halfBlockHeight, requestedCenterY),
+    );
+
+    lines.forEach((line, index) => {
+      const y = centerY + (index - (lines.length - 1) / 2) * lineHeight;
+      ctx.fillText(line, textX, y, maxTextWidth);
+    });
     ctx.shadowColor = "transparent";
   }
 

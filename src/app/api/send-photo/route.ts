@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { SolapiMessageService } from "solapi";
 import { normalizeKoreanPhoneNumber } from "@/lib/phone";
+import { getErrorMessage } from "@/lib/errors";
 
 export async function POST(request: Request) {
   try {
@@ -52,12 +53,14 @@ export async function POST(request: Request) {
       success: true,
       data: response,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error sending photo SMS via Solapi:", error);
+    const serviceMessage =
+      typeof error === "object" && error !== null && "errorMessage" in error
+        ? String((error as { errorMessage?: unknown }).errorMessage || "")
+        : "";
     const message =
-      error?.message ||
-      error?.errorMessage ||
-      "문자 발송 중 오류가 발생했습니다.";
+      serviceMessage || getErrorMessage(error, "문자 발송 중 오류가 발생했습니다.");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

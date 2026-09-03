@@ -1,12 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
+import type {
+  Results as SegmentationResults,
+  SelfieSegmentation as SelfieSegmentationInstance,
+} from "@mediapipe/selfie_segmentation";
 import { useRouter } from "next/navigation";
 import { Camera, RefreshCcw, ArrowRight, Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import { Suspense } from "react";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
 import { WebcamFrame } from "@/components/webcam-frame";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  removeSessionImage,
+  setSessionImage,
+} from "@/lib/session-image-store";
+
+type SelfieSegmentationConstructor = new (config?: {
+  locateFile?: (path: string, prefix?: string) => string;
+}) => SelfieSegmentationInstance;
 
 function CameraContent() {
   useIdleTimeout();
@@ -24,35 +37,7 @@ function CameraContent() {
     setCountdown(5);
   };
 
-  useEffect(() => {
-    if (countdown === null) return;
-    if (countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    } else {
-      takePicture();
-      setCountdown(null);
-    }
-  }, [countdown]);
-
-  const takePicture = async () => {
-    if (!webcamRef.current) return;
-    
-    // Flash effect
-    setFlash(true);
-    setTimeout(() => setFlash(false), 200);
-
-    const imageSrc = webcamRef.current.getScreenshot();
-    if (!imageSrc) {
-      setError("사진을 캡처하지 못했습니다. 다시 시도해주세요.");
-      return;
-    }
-    
-    setIsProcessing(true);
-    await processImage(imageSrc);
-  };
-
-  const processImage = async (imageSrc: string) => {
+  const processImage = useCallback(async (imageSrc: string) => {
     try {
       const img = new Image();
       img.src = imageSrc;
@@ -68,59 +53,101 @@ function CameraContent() {
       canvas.width = img.width;
       canvas.height = img.height;
 
-      // MediaPipe Selfie Segmentation from window
-      const SelfieSegmentation = (window as any).SelfieSegmentation;
+      const SelfieSegmentation = (
+        window as typeof window & {
+          SelfieSegmentation?: SelfieSegmentationConstructor;
+        }
+      ).SelfieSegmentation;
       if (!SelfieSegmentation) {
-        throw new Error("Selfie Segmentation script not loaded");
+        throw new Error("인물 분리 모듈을 불러오지 못했습니다. 페이지를 새로고침해 주세요.");
       }
+
       const selfieSegmentation = new SelfieSegmentation({
-        locateFile: (file: string) => {
-          return `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`;
-        },
+        locateFile: (file: string) => `/mediapipe/selfie-segmentation/${file}`,
       });
 
       selfieSegmentation.setOptions({
         modelSelection: 1, // 0 for general, 1 for landscape (faster)
       });
 
-      selfieSegmentation.onResults((results: any) => {
-        ctx.save();
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Horizontal flip so the captured output matches what user saw in mirror preview
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
+      selfieSegmentation.onResults(async (results: SegmentationResults) => {
+        try {
+          ctx.save();
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw original image
-        ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
-        
-        // Use segmentation mask to keep only person (foreground)
-        ctx.globalCompositeOperation = "destination-in";
-        ctx.drawImage(results.segmentationMask, 0, 0, canvas.width, canvas.height);
-        
-        // Restore to default composite operation
-        ctx.restore();
+          // Match the mirrored preview so the saved pose is not unexpectedly flipped.
+          ctx.translate(canvas.width, 0);
+          ctx.scale(-1, 1);
+          ctx.drawImage(results.image, 0, 0, canvas.width, canvas.height);
+          ctx.globalCompositeOperation = "destination-in";
+          ctx.drawImage(
+            results.segmentationMask,
+            0,
+            0,
+            canvas.width,
+            canvas.height,
+          );
+          ctx.restore();
 
-        // Get final masked image
-        const maskedImageBase64 = canvas.toDataURL("image/png");
-        setCapturedImage(maskedImageBase64);
-        setIsProcessing(false);
-        
-        // Save to sessionStorage to pass to next screen
-        sessionStorage.setItem("capturedImage", maskedImageBase64);
+          const maskedImageBase64 = canvas.toDataURL("image/png");
+          await setSessionImage("capturedImage", maskedImageBase64);
+          setCapturedImage(maskedImageBase64);
+        } catch (storageError) {
+          console.error(storageError);
+          setError("사진을 저장하지 못했습니다. 브라우저 저장 공간을 확인해 주세요.");
+        } finally {
+          setIsProcessing(false);
+        }
       });
 
-      await selfieSegmentation.initialize();
-      await selfieSegmentation.send({ image: img });
+      try {
+        await selfieSegmentation.initialize();
+        await selfieSegmentation.send({ image: img });
+      } finally {
+        await selfieSegmentation.close();
+      }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(`배경 제거 오류: ${err.message || err}`);
+      setError(`배경 제거 오류: ${getErrorMessage(err, "알 수 없는 오류")}`);
       setIsProcessing(false);
     }
-  };
+  }, []);
 
-  const handleNext = () => {
+  const takePicture = useCallback(async () => {
+    if (!webcamRef.current) return;
+
+    setFlash(true);
+    setTimeout(() => setFlash(false), 200);
+
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      setError("사진을 캡처하지 못했습니다. 다시 시도해주세요.");
+      return;
+    }
+
+    setIsProcessing(true);
+    await processImage(imageSrc);
+  }, [processImage]);
+
+  useEffect(() => {
+    if (countdown === null) return;
+
+    const timer = setTimeout(() => {
+      if (countdown > 0) {
+        setCountdown((current) =>
+          current === null ? null : Math.max(0, current - 1),
+        );
+      } else {
+        setCountdown(null);
+        void takePicture();
+      }
+    }, countdown > 0 ? 1000 : 0);
+
+    return () => clearTimeout(timer);
+  }, [countdown, takePicture]);
+
+  const handleNext = async () => {
     if (!capturedImage) {
       setError("먼저 사진을 촬영해 주세요.");
       return;
@@ -128,7 +155,8 @@ function CameraContent() {
     router.push("/prompt");
   };
 
-  const handleRetake = () => {
+  const handleRetake = async () => {
+    await removeSessionImage("capturedImage");
     setCapturedImage(null);
   };
 

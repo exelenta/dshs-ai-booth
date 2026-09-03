@@ -10,7 +10,7 @@ async function testGenerate() {
   for (const model of models) {
     try {
       console.log(`Testing ${model}...`);
-      const response = await ai.models.generateContent({
+      await ai.models.generateContent({
         model: model,
         contents: "A beautiful cat",
       });

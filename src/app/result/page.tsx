@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useCallback, useEffect, useState, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ArrowLeft, ArrowRight, Wand2, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Wand2, Sparkles } from "lucide-react";
 import { useIdleTimeout } from "@/hooks/use-idle-timeout";
+import { getErrorMessage } from "@/lib/errors";
+import {
+  getSessionImage,
+  setSessionImage,
+} from "@/lib/session-image-store";
 
 function ResultContent() {
   useIdleTimeout();
@@ -18,31 +23,7 @@ function ResultContent() {
   const [currentTheme, setCurrentTheme] = useState<string>("space");
   const fetchedRef = useRef(false);
 
-  useEffect(() => {
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-
-    const prompt = sessionStorage.getItem("userPrompt");
-    const theme = sessionStorage.getItem("userTheme") || "space";
-    const personImgStr = sessionStorage.getItem("capturedImage");
-    const cachedBgImage = sessionStorage.getItem("bgImage");
-
-    setCurrentTheme(theme);
-
-    if (!prompt) {
-      router.push("/");
-      return;
-    }
-    
-    if (cachedBgImage) {
-      setBgImage(cachedBgImage);
-      setLoading(false);
-    } else {
-      generateBackground(prompt, theme, personImgStr);
-    }
-  }, [router]);
-
-  const generateBackground = async (
+  const generateBackground = useCallback(async (
     prompt: string,
     theme: string,
     userImage: string | null
@@ -66,14 +47,42 @@ function ResultContent() {
       if (!res.ok) throw new Error(data.error || "이미지 생성에 실패했습니다.");
       
       setBgImage(data.image);
-      sessionStorage.setItem("bgImage", data.image);
+      await setSessionImage("bgImage", data.image);
       setLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "이미지 생성 중 오류가 발생했습니다.");
+      setError(getErrorMessage(err, "이미지 생성 중 오류가 발생했습니다."));
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (fetchedRef.current) return;
+    fetchedRef.current = true;
+
+    void (async () => {
+      const prompt = sessionStorage.getItem("userPrompt");
+      const theme = sessionStorage.getItem("userTheme") || "space";
+      const [personImgStr, cachedBgImage] = await Promise.all([
+        getSessionImage("capturedImage"),
+        getSessionImage("bgImage"),
+      ]);
+
+      setCurrentTheme(theme);
+
+      if (!prompt) {
+        router.push("/");
+        return;
+      }
+
+      if (cachedBgImage) {
+        setBgImage(cachedBgImage);
+        setLoading(false);
+      } else {
+        await generateBackground(prompt, theme, personImgStr);
+      }
+    })();
+  }, [generateBackground, router]);
 
   const handleNextStep = async () => {
     if (!bgImage) return;
@@ -112,7 +121,7 @@ function ResultContent() {
       ctx.drawImage(bg, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
 
       const finalImg = canvas.toDataURL("image/jpeg", 0.95);
-      sessionStorage.setItem("finalImage", finalImg);
+      await setSessionImage("finalImage", finalImg);
       router.push("/print");
     } catch (e) {
       console.error(e);

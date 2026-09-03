@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { clearSessionImages } from "@/lib/session-image-store";
 
 export function useIdleTimeout(timeoutMs: number = 120000, redirectPath: string = "/") {
   const router = useRouter();
@@ -11,8 +12,9 @@ export function useIdleTimeout(timeoutMs: number = 120000, redirectPath: string 
 
     const resetTimer = () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(async () => {
         sessionStorage.clear();
+        await clearSessionImages();
         router.push(redirectPath);
       }, timeoutMs);
     };

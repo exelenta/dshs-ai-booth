@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /prints/{date}/{fileName} {
+      // Download links need object-level reads, but directory listing is blocked.
+      allow get: if true;
+      allow list: if false;
+
+      // The kiosk uploads only bounded JPEG output files. Existing objects cannot
+      // be replaced or manually retained through the public client.
+      allow create: if request.resource.size < 15 * 1024 * 1024
+                    && request.resource.contentType == 'image/jpeg';
+      allow update, delete: if false;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

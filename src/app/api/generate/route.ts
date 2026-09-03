@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { selectGenerationMode } from "@/lib/generation-mode";
+import { getErrorMessage } from "@/lib/errors";
 
 // Initialize the Google Gen AI SDK
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
@@ -12,14 +14,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "프롬프트가 필요합니다." }, { status: 400 });
     }
 
-    const isPureLandscape =
-      prompt.includes("인물이 전혀 등장하지 않는") ||
-      prompt.includes("순수한 풍경");
+    const mode = selectGenerationMode(prompt, Boolean(userImage));
 
-    const contents: any[] = [];
+    const contents: Array<
+      string | { inlineData: { mimeType: string; data: string } }
+    > = [];
     let enhancedPrompt = "";
 
-    if (userImage && !isPureLandscape) {
+    if (mode === "image-to-image") {
       // 1. Image-to-Image (Character Redraw & Art Style Transformation) Mode
       enhancedPrompt = `[TASK: ART STYLE TRANSFORMATION & CHARACTER RE-IMAGINATION]
 You are a master illustrator.
@@ -51,8 +53,8 @@ photorealistic face, real photo, raw camera cutout, unblended layers, sticker cu
           data: base64Data,
         },
       });
-    } else {
-      // 2. Pure Scenery Illustration Mode
+    } else if (mode === "pure-landscape") {
+      // 2. Explicit Pure Scenery Illustration Mode
       enhancedPrompt = `[TASK: HIGH-QUALITY SCENERY ILLUSTRATION]
 Theme: ${theme || "fantasy"}.
 User Idea: ${prompt}
@@ -61,41 +63,58 @@ IMPORTANT: Draw a pure landscape/environment with absolutely NO humans, NO peopl
 
 NEGATIVE PROMPT:
 humans, people, person, faces, figures, silhouettes, crowd, characters, text, watermarks, logo.`;
+    } else {
+      // 3. Text-to-Image mode: no reference photo, but requested people or
+      // characters must still be allowed to appear.
+      enhancedPrompt = `[TASK: HIGH-QUALITY ILLUSTRATION]
+Theme: ${theme || "fantasy"}.
+User Idea: ${prompt}
+
+Create a cohesive, polished illustration from the user's description. If the user asks for people, a family, a child, or a character, include them naturally in the scene. Do not invent extra people when the prompt does not request them.
+
+NEGATIVE PROMPT:
+text, watermarks, logo, signature, malformed hands, distorted faces, low resolution.`;
     }
 
     contents.push(enhancedPrompt);
 
-    console.log("Generating image with prompt (isImageToImage:", !!(userImage && !isPureLandscape), "):", enhancedPrompt.slice(0, 200) + "...");
+    console.log(
+      "Generating image with mode:",
+      mode,
+      enhancedPrompt.slice(0, 200) + "...",
+    );
 
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-image-preview",
       contents: contents,
     });
 
-    let base64Image = null;
+    let base64Image: string | null = null;
+    let imageMimeType = "image/jpeg";
     const parts = response.candidates?.[0]?.content?.parts || [];
     for (const part of parts) {
-      if (part.inlineData) {
+      if (part.inlineData?.data) {
         base64Image = part.inlineData.data;
+        imageMimeType = part.inlineData.mimeType || imageMimeType;
         break;
       }
     }
 
     if (!base64Image) {
-      const textPart = parts.find((p: any) => p.text)?.text;
+      const textPart = parts.find((part) => part.text)?.text;
       console.warn("No inline image returned. Explanation text:", textPart);
       throw new Error(textPart || "AI가 이미지를 생성하지 못했습니다. 프롬프트를 확인하고 다시 시도해 주세요.");
     }
 
     return NextResponse.json({
       success: true,
-      image: `data:image/jpeg;base64,${base64Image}`,
+      image: `data:${imageMimeType};base64,${base64Image}`,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error generating image:", error);
     return NextResponse.json(
-      { error: error.message || "이미지 생성 중 오류가 발생했습니다." },
+      { error: getErrorMessage(error, "이미지 생성 중 오류가 발생했습니다.") },
       { status: 500 }
     );
   }
